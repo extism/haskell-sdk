@@ -4,10 +4,10 @@ import Extism
 import Extism.HostFunction
 import Extism.Manifest(manifest, wasmFile)
 
-hello plugin params msg = do
+hello currPlugin params msg = do
   putStrLn "Hello from Haskell!"
   putStrLn msg
-  offs <- allocBytes plugin (toByteString "{\"count\": 999}")
+  offs <- allocString currPlugin "{\"count\": 999}"
   return [toI64 offs]
 
 main = do

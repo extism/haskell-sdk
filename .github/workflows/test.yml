@@ -1,0 +1,44 @@
+on: 
+  pull_request:
+  workflow_dispatch:
+
+name: Haskell CI
+
+jobs:
+  test:
+    name: Haskell
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+      - uses: ./.github/actions/libextism
+      - name: Setup Haskell env
+        uses: haskell/actions/setup@v2
+        with:
+          enable-stack: false
+      - name: 'Set up HLint'
+        uses: haskell/actions/hlint-setup@v2
+      - name: Build Haskell Host SDK
+        run: |
+          uname -a
+          cabal update
+          cabal build
+
+      - name: Test Haskell SDK
+        run: |
+          LD_LIBRARY_PATH=/usr/local/lib cabal test
+
+      - name: 'Run HLint'
+        uses: haskell/actions/hlint-run@v2
+        with:
+            path: src/
+            fail-on: warning
+
+      - name: 'Run HLint'
+        uses: haskell/actions/hlint-run@v2
+        with:
+            path: manifest/
+            fail-on: warning

@@ -29,7 +29,7 @@ jobs:
 
       - name: Test Haskell SDK
         run: |
-          cabal test
+          LD_LIBRARY_PATH=/usr/local/lib cabal test
 
       - name: 'Run HLint'
         uses: haskell/actions/hlint-run@v2

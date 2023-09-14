@@ -4,11 +4,11 @@ version:            0.5.0
 license:            BSD-3-Clause
 maintainer:         oss@extism.org
 author:             Extism authors
-bug-reports:        https://github.com/extism/extism
+bug-reports:        https://github.com/extism/haskell-sdk
 synopsis:           Extism bindings
 description:        Bindings to Extism, the universal plugin system
 category:           Plugins, WebAssembly
-extra-doc-files: CHANGELOG.md
+extra-doc-files: cabal.project README.md CHANGELOG.md
 
 library
     exposed-modules:    Extism Extism.HostFunction
@@ -43,4 +43,4 @@ test-suite extism-test
         base,
         extism,
         bytestring,
-        HUnit
+        HUnit >= 1.5.0 && < 2

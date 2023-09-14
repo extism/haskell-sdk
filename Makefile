@@ -17,7 +17,6 @@ publish: clean prepare
 	cabal v2-haddock --haddock-for-hackage
 	cabal sdist ./manifest/extism-manifest.cabal
 	cabal sdist
-	# TODO: upload
 
 format:
 	# TODO

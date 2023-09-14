@@ -1,0 +1,22 @@
+name: "Release"
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Haskell env
+        uses: haskell/actions/setup@v2
+        with:
+          enable-stack: false
+      - run: make publish
+      - uses: haskell-actions/hackage-publish@v1
+        with:
+          hackageToken: "${{ secrets.HACKAGE_AUTH_TOKEN }}"
+          packagesPath: dist-newstyle/sdist
+          docsPath: dist-newstyle
+          publish: true

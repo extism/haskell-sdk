@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, DerivingStrategies #-}
 
 module Extism.HostFunction(
   CurrentPlugin(..),
@@ -12,8 +12,10 @@ module Extism.HostFunction(
   memoryOffset,
   memoryBytes,
   memoryString,
+  memoryGet,
   allocBytes,
   allocString,
+  alloc,
   toI32,
   toI64,
   toF32,
@@ -22,7 +24,11 @@ module Extism.HostFunction(
   fromI64,
   fromF32,
   fromF64,
-  hostFunction
+  hostFunction,
+  param,
+  result,
+  getParams,
+  setResults
 ) where
 
 import Extism
@@ -31,37 +37,39 @@ import Data.Word
 import qualified Data.ByteString as B
 import Foreign.Ptr
 import Foreign.ForeignPtr
+import Foreign.Storable
 import Foreign.C.String
 import Foreign.StablePtr
 import Foreign.Concurrent
 import Foreign.Marshal.Array
 import qualified Data.ByteString.Internal as BS (c2w)
+import Data.IORef
 
 -- | Access the plugin that is currently executing from inside a host function
-type CurrentPlugin = Ptr ExtismCurrentPlugin
+data CurrentPlugin = CurrentPlugin (Ptr ExtismCurrentPlugin) [Val] (Ptr Val) Int
 
 -- | A memory handle represents an allocated block of Extism memory
 newtype MemoryHandle = MemoryHandle Word64 deriving (Num, Enum, Eq, Ord, Real, Integral, Show)
 
 -- | Allocate a new handle of the given size
 memoryAlloc :: CurrentPlugin -> Word64 -> IO MemoryHandle
-memoryAlloc p n = MemoryHandle <$> extism_current_plugin_memory_alloc p n
+memoryAlloc (CurrentPlugin p _ _ _) n = MemoryHandle <$> extism_current_plugin_memory_alloc p n
 
 -- | Get the length of a handle, returns 0 if the handle is invalid
 memoryLength :: CurrentPlugin -> MemoryHandle -> IO Word64
-memoryLength p (MemoryHandle offs) = extism_current_plugin_memory_length p offs
+memoryLength (CurrentPlugin p _ _ _) (MemoryHandle offs) = extism_current_plugin_memory_length p offs
 
 -- | Free allocated memory
 memoryFree :: CurrentPlugin -> MemoryHandle -> IO ()
-memoryFree p (MemoryHandle offs) = extism_current_plugin_memory_free p offs
+memoryFree (CurrentPlugin p _ _ _) (MemoryHandle offs) = extism_current_plugin_memory_free p offs
 
 -- | Access a pointer to the entire memory region
 memory :: CurrentPlugin -> IO (Ptr Word8)
-memory = extism_current_plugin_memory
+memory (CurrentPlugin p _ _ _) = extism_current_plugin_memory p
 
 -- | Access the pointer for the given 'MemoryHandle'
 memoryOffset :: CurrentPlugin -> MemoryHandle -> IO (Ptr Word8)
-memoryOffset plugin (MemoryHandle offs) = do
+memoryOffset (CurrentPlugin plugin _ _ _) (MemoryHandle offs) = do
   x <- extism_current_plugin_memory plugin
   return $ plusPtr x (fromIntegral offs)
 
@@ -80,7 +88,14 @@ memoryString plugin offs = do
   ptr <- memoryOffset plugin offs
   len <- memoryLength plugin offs
   arr <- peekArray (fromIntegral len) ptr
-  return $ fromByteString $ B.pack arr
+  return $ fromByteString $ B.pack arr   
+
+-- | Access the data associated with a handle and convert it into a Haskell type
+memoryGet :: FromPointer a => CurrentPlugin -> MemoryHandle -> IO (Result a)
+memoryGet plugin offs = do
+  ptr <- memoryOffset plugin offs
+  len <- memoryLength plugin offs
+  fromPointer (castPtr ptr) (fromIntegral len)
 
 -- | Allocate memory and copy an existing 'ByteString' into it
 allocBytes :: CurrentPlugin -> B.ByteString -> IO MemoryHandle
@@ -100,6 +115,13 @@ allocString plugin s = do
   ptr <- memoryOffset plugin offs
   pokeArray ptr (Prelude.map BS.c2w s)
   return offs
+
+  
+alloc :: ToBytes a => CurrentPlugin -> a -> IO MemoryHandle
+alloc plugin x =
+  let a = toBytes x in
+  allocBytes plugin a
+
 
 -- | Create a new I32 'Val'
 toI32 :: Integral a => a -> Val
@@ -137,20 +159,49 @@ fromF64 :: Val -> Maybe Double
 fromF64 (ValF64 x) = Just x
 fromF64 _ = Nothing
 
+setResults :: CurrentPlugin -> [Val] -> IO ()
+setResults (CurrentPlugin _ _ res _) = pokeArray res
+
+getParams :: CurrentPlugin -> [Val]
+getParams (CurrentPlugin _ params _ _) = params
+
+result :: ToBytes a => CurrentPlugin -> Int -> a -> IO ()
+result p index x = do
+  mem <- alloc p x
+  let CurrentPlugin _ _ res len = p
+  if index >= len then return ()
+  else pokeElemOff res len (toI64 mem)
+
+param :: FromPointer a => CurrentPlugin -> Int -> IO (Result a)
+param plugin index =
+  let (CurrentPlugin _ params _ _) = plugin in
+  let x = fromI64 (params !! index) :: Maybe Word64 in
+  case x of
+    Nothing -> return $ Left (ExtismError "invalid parameter")
+    Just offs -> do
+      memoryGet plugin (MemoryHandle offs)
+
+
+callback :: (CurrentPlugin -> a -> IO ()) -> (Ptr ExtismCurrentPlugin -> Ptr Val -> Word64 -> Ptr Val -> Word64 -> Ptr () -> IO ())
+callback f plugin params nparams results nresults ptr = do
+    p <- peekArray (fromIntegral nparams) params
+    (userData, _, _)  <- deRefStablePtr (castPtrToStablePtr ptr)
+    f (CurrentPlugin plugin p results (fromIntegral nresults)) userData
+
 -- | Create a new 'Function' that can be called from a 'Plugin'
-hostFunction :: String -> [ValType] -> [ValType] -> (CurrentPlugin -> [Val] -> a -> IO [Val]) -> a -> IO Function
+hostFunction :: String -> [ValType] -> [ValType] -> (CurrentPlugin -> a -> IO ()) -> a -> IO Function
 hostFunction name params results f v =
   let nparams = fromIntegral $ length params in
   let nresults = fromIntegral $ length results in
   do
-    cb <- callbackWrap (callback f :: CCallback)
+    cb <- callbackWrap (callback f)
     free <- freePtrWrap freePtr
     userData <- newStablePtr (v, free, cb)
     let userDataPtr = castStablePtrToPtr userData
-    x <- withCString name (\name ->  do
-      withArray params (\params ->
-        withArray results (\results -> do
-          extism_function_new name params nparams results nresults cb userDataPtr free)))
+    x <- withCString name (\name' ->
+      withArray params (\params' ->
+        withArray results (\results' ->
+          extism_function_new name' params' nparams results' nresults cb userDataPtr free)))
     let freeFn = extism_function_free x
     fptr <- Foreign.Concurrent.newForeignPtr x freeFn
     return $ Function fptr (castPtrToStablePtr userDataPtr)

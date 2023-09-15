@@ -158,7 +158,7 @@ instance FromPointer B.ByteString where
     return $ Right x
 
 instance ToBytes [Char] where
-  toBytes x = toByteString x
+  toBytes = toByteString
 
 instance FromPointer [Char] where
   fromPointer ptr len = do

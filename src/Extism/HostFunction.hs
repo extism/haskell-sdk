@@ -160,8 +160,7 @@ fromF64 (ValF64 x) = Just x
 fromF64 _ = Nothing
 
 setResults :: CurrentPlugin -> [Val] -> IO ()
-setResults (CurrentPlugin _ _ res _) x =
-  pokeArray res x
+setResults (CurrentPlugin _ _ res _) = pokeArray res
 
 getParams :: CurrentPlugin -> [Val]
 getParams (CurrentPlugin _ params _ _) = params
@@ -176,7 +175,7 @@ result p index x = do
 param :: FromPointer a => CurrentPlugin -> Int -> IO (Result a)
 param plugin index =
   let (CurrentPlugin _ params _ _) = plugin in
-  let x = (fromI64 $ (params !! index) :: Maybe Word64) in
+  let x = fromI64 (params !! index) :: Maybe Word64 in
   case x of
     Nothing -> return $ Left (ExtismError "invalid parameter")
     Just offs -> do

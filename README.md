@@ -16,15 +16,14 @@ import Extism.HostFunction
 import Extism.Manifest(manifest, wasmFile)
 
 -- Host function, prints a greeting then modifies the vowel count
-hello currPlugin params msg = do
+hello currPlugin msg = do
   putStrLn "Hello from Haskell!"
 
   -- Print userdata
   putStrLn msg
 
-  -- Allocate and return a string
-  offs <- alloc currPlugin "{\"count\": 999}"
-  return [toI64 offs]
+  -- Return a string
+  result currPlugin 0 "{\"count\": 999}"
 
 main = do
   setLogFile "stdout" LogError

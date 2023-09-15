@@ -4,11 +4,10 @@ import Extism
 import Extism.HostFunction
 import Extism.Manifest(manifest, wasmFile)
 
-hello currPlugin params msg = do
+hello currPlugin msg = do
   putStrLn "Hello from Haskell!"
   putStrLn msg
-  offs <- alloc currPlugin "{\"count\": 999}"
-  return [toI64 offs]
+  result currPlugin 0 "{\"count\": 999}"
 
 main = do
   setLogFile "stdout" LogError

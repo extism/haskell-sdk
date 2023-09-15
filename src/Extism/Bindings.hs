@@ -113,9 +113,3 @@ foreign import ccall "wrapper" freePtrWrap :: FreeCallback -> IO (FunPtr FreeCal
 
 foreign import ccall "wrapper" callbackWrap :: CCallback -> IO (FunPtr CCallback)
 
-callback :: (Ptr ExtismCurrentPlugin -> [Val] -> a -> IO [Val]) -> (Ptr ExtismCurrentPlugin -> Ptr Val -> Word64 -> Ptr Val -> Word64 -> Ptr () -> IO ())
-callback f plugin params nparams results nresults ptr = do
-    p <- peekArray (fromIntegral nparams) params
-    (userData, _, _)  <- deRefStablePtr (castPtrToStablePtr ptr)
-    res <- f plugin p userData
-    pokeArray results res

@@ -31,10 +31,9 @@ pluginCall = do
   checkCallResult p
 
 
-hello plugin params () = do
+hello plugin () = do
   putStrLn "Hello from Haskell!"
-  offs <- allocBytes plugin (toByteString "{\"count\": 999}")
-  return [toI64 offs]
+  result plugin 0 "{\"count\": 999}"
 
 pluginCallHostFunction = do
   p <- Extism.pluginFromManifest hostFunctionManifest [] False >>= assertUnwrap

@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, DerivingStrategies #-}
 
 module Extism.HostFunction(
   CurrentPlugin(..),
@@ -163,9 +163,9 @@ hostFunction name params results f v =
     free <- freePtrWrap freePtr
     userData <- newStablePtr (v, free, cb)
     let userDataPtr = castStablePtrToPtr userData
-    x <- withCString name (\name ->  do
+    x <- withCString name (\name ->
       withArray params (\params ->
-        withArray results (\results -> do
+        withArray results (\results ->
           extism_function_new name params nparams results nresults cb userDataPtr free)))
     let freeFn = extism_function_free x
     fptr <- Foreign.Concurrent.newForeignPtr x freeFn

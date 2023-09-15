@@ -1,4 +1,4 @@
-{-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE ForeignFunctionInterface, DerivingStrategies #-}
 
 module Extism.Bindings where
 
@@ -77,7 +77,7 @@ instance Storable ValType where
   peek ptr = do
     x <- peekByteOff ptr 0
     return $ valTypeOfInt (x :: CInt)
-  poke ptr x = do
+  poke ptr x =
     pokeByteOff ptr 0 (intOfValType x)
 
 foreign import ccall safe "extism.h extism_plugin_new" extism_plugin_new :: Ptr Word8 -> Word64 -> Ptr (Ptr ExtismFunction) -> Word64 -> CBool -> Ptr CString -> IO (Ptr ExtismPlugin)

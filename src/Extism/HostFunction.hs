@@ -12,8 +12,10 @@ module Extism.HostFunction(
   memoryOffset,
   memoryBytes,
   memoryString,
+  memoryGet,
   allocBytes,
   allocString,
+  alloc,
   toI32,
   toI64,
   toF32,
@@ -80,7 +82,14 @@ memoryString plugin offs = do
   ptr <- memoryOffset plugin offs
   len <- memoryLength plugin offs
   arr <- peekArray (fromIntegral len) ptr
-  return $ fromByteString $ B.pack arr
+  return $ fromByteString $ B.pack arr   
+
+-- | Access the data associated with a handle and convert it into a Haskell type
+memoryGet :: FromPointer a => CurrentPlugin -> MemoryHandle -> IO (Result a)
+memoryGet plugin offs = do
+  ptr <- memoryOffset plugin offs
+  len <- memoryLength plugin offs
+  fromPointer (castPtr ptr) (fromIntegral len)
 
 -- | Allocate memory and copy an existing 'ByteString' into it
 allocBytes :: CurrentPlugin -> B.ByteString -> IO MemoryHandle
@@ -100,6 +109,13 @@ allocString plugin s = do
   ptr <- memoryOffset plugin offs
   pokeArray ptr (Prelude.map BS.c2w s)
   return offs
+
+  
+alloc :: ToBytes a => CurrentPlugin -> a -> IO MemoryHandle
+alloc plugin x =
+  let a = toBytes x in
+  allocBytes plugin a
+
 
 -- | Create a new I32 'Val'
 toI32 :: Integral a => a -> Val

@@ -41,10 +41,11 @@ instance Storable Val where
       I64 -> ValI64 <$> peekByteOff ptr offs
       F32 -> ValF32 <$> peekByteOff ptr offs
       F64 -> ValF64 <$> peekByteOff ptr offs
-  poke ptr x = do
+      _ -> error "Unsupported val type"
+  poke ptr a = do
     let offs = if _32Bit then 4 else 8
-    pokeByteOff ptr 0 (typeOfVal x)
-    case x of
+    pokeByteOff ptr 0 (typeOfVal a)
+    case a of
       ValI32 x -> pokeByteOff ptr offs x
       ValI64 x -> pokeByteOff ptr offs x
       ValF32 x -> pokeByteOff ptr offs x
@@ -103,7 +104,7 @@ foreign import ccall safe "extism.h extism_current_plugin_memory_free" extism_cu
 
 freePtr ptr = do
   let s = castPtrToStablePtr ptr
-  (a, b, c) <- deRefStablePtr s
+  (_, b, c) <- deRefStablePtr s
   freeHaskellFunPtr b
   freeHaskellFunPtr c
   freeStablePtr s

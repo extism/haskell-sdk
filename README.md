@@ -23,7 +23,7 @@ hello currPlugin params msg = do
   putStrLn msg
 
   -- Allocate and return a string
-  offs <- allocString currPlugin "{\"count\": 999}"
+  offs <- alloc currPlugin "{\"count\": 999}"
   return [toI64 offs]
 
 main = do
@@ -39,8 +39,8 @@ main = do
   plugin <- unwrap <$> pluginFromManifest m [f] True
 
   -- Call the "count_vowels" function
-  res <- unwrap <$> call plugin "count_vowels" (toByteString "this is a test")
+  res <- unwrap <$> call plugin "count_vowels" "this is a test"
 
   -- Print the results
-  putStrLn (fromByteString res)
+  putStrLn res
 ```

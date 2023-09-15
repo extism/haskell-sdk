@@ -7,7 +7,7 @@ import Extism.Manifest(manifest, wasmFile)
 hello currPlugin params msg = do
   putStrLn "Hello from Haskell!"
   putStrLn msg
-  offs <- allocString currPlugin "{\"count\": 999}"
+  offs <- alloc currPlugin "{\"count\": 999}"
   return [toI64 offs]
 
 main = do
@@ -17,5 +17,5 @@ main = do
   plugin <- unwrap <$> pluginFromManifest m [f] True
   id <- pluginID plugin
   print id
-  res <- unwrap <$> call plugin "count_vowels" (toByteString "this is a test")
-  putStrLn (fromByteString res)
+  res <- unwrap <$> call plugin "count_vowels" "this is a test"
+  putStrLn res

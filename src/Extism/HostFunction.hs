@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, DerivingStrategies #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, DerivingStrategies, BangPatterns #-}
 
 module Extism.HostFunction(
   CurrentPlugin(..),
@@ -25,8 +25,8 @@ module Extism.HostFunction(
   fromF32,
   fromF64,
   hostFunction,
-  param,
-  result,
+  input,
+  output,
   getParams,
   setResults
 ) where
@@ -165,15 +165,18 @@ setResults (CurrentPlugin _ _ res _) = pokeArray res
 getParams :: CurrentPlugin -> [Val]
 getParams (CurrentPlugin _ params _ _) = params
 
-result :: ToBytes a => CurrentPlugin -> Int -> a -> IO ()
-result p index x = do
-  mem <- alloc p x
-  let CurrentPlugin _ _ res len = p
-  if index >= len then return ()
-  else pokeElemOff res len (toI64 mem)
+output :: ToBytes a => CurrentPlugin -> Int -> a -> IO ()
+output !p !index !x =
+  let 
+    CurrentPlugin _ _ !res !len = p 
+  in
+  do
+    mem <- alloc p x
+    if index >= len then return ()
+    else pokeElemOff res index (toI64 mem)
 
-param :: FromPointer a => CurrentPlugin -> Int -> IO (Result a)
-param plugin index =
+input :: FromPointer a => CurrentPlugin -> Int -> IO (Result a)
+input plugin index =
   let (CurrentPlugin _ params _ _) = plugin in
   let x = fromI64 (params !! index) :: Maybe Word64 in
   case x of

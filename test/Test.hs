@@ -32,8 +32,10 @@ pluginCall = do
 
 
 hello plugin () = do
+  s <- unwrap <$> input plugin 0
+  assertEqual "host function input" "{\"count\": 4}" s
   putStrLn "Hello from Haskell!"
-  result plugin 0 "{\"count\": 999}"
+  output plugin 0 "{\"count\": 999}"
 
 pluginCallHostFunction = do
   p <- Extism.pluginFromManifest hostFunctionManifest [] False >>= assertUnwrap

@@ -5,9 +5,10 @@ import Extism.HostFunction
 import Extism.Manifest(manifest, wasmFile)
 
 hello currPlugin msg = do
+  putStrLn <$> unwrap <$> input currPlugin 0
   putStrLn "Hello from Haskell!"
   putStrLn msg
-  result currPlugin 0 "{\"count\": 999}"
+  output currPlugin 0 "{\"count\": 999}"
 
 main = do
   setLogFile "stdout" LogError

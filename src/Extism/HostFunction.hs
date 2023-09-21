@@ -166,14 +166,14 @@ getParams :: CurrentPlugin -> [Val]
 getParams (CurrentPlugin _ params _ _) = params
 
 output :: ToBytes a => CurrentPlugin -> Int -> a -> IO ()
-output p index x =
+output !p !index !x =
   let 
     CurrentPlugin _ _ !res !len = p 
   in
   do
     mem <- alloc p x
     if index >= len then return ()
-    else pokeElemOff res len (toI64 mem)
+    else pokeElemOff res index (toI64 mem)
 
 input :: FromPointer a => CurrentPlugin -> Int -> IO (Result a)
 input plugin index =

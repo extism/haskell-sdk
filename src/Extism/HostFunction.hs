@@ -27,8 +27,8 @@ module Extism.HostFunction(
   hostFunction,
   input,
   output,
-  getInput,
-  setOutput
+  getParams,
+  setResults
 ) where
 
 import Extism
@@ -159,11 +159,11 @@ fromF64 :: Val -> Maybe Double
 fromF64 (ValF64 x) = Just x
 fromF64 _ = Nothing
 
-setOutput :: CurrentPlugin -> [Val] -> IO ()
-setOutput (CurrentPlugin _ _ res _) = pokeArray res
+setResults :: CurrentPlugin -> [Val] -> IO ()
+setResults (CurrentPlugin _ _ res _) = pokeArray res
 
-getInput :: CurrentPlugin -> [Val]
-getInput (CurrentPlugin _ params _ _) = params
+getParams :: CurrentPlugin -> [Val]
+getParams (CurrentPlugin _ params _ _) = params
 
 output :: ToBytes a => CurrentPlugin -> Int -> a -> IO ()
 output p index x =

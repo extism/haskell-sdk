@@ -30,6 +30,7 @@ module Extism (
 import Foreign.ForeignPtr
 import Foreign.C.String
 import Foreign.Ptr
+import GHC.Ptr
 import Foreign.Marshal.Array
 import Foreign.Marshal.Alloc
 import Foreign.Storable
@@ -37,7 +38,7 @@ import Foreign.StablePtr
 import Foreign.Concurrent
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
-import Data.ByteString.Internal (c2w, w2c)
+import Data.ByteString.Internal (c2w, w2c, unsafePackLenAddress)
 import Data.ByteString.Unsafe (unsafeUseAsCString)
 import qualified Text.JSON (encode, decode, toJSObject, showJSON, Result(..))
 import qualified Extism.JSON (JSON(..))
@@ -153,8 +154,8 @@ instance ToBytes B.ByteString where
   toBytes x = x
 
 instance FromPointer B.ByteString where
-  fromPointer ptr len = do
-    x <- B.packCStringLen (castPtr ptr, fromIntegral len)
+  fromPointer (Ptr ptr) len = do
+    x <- unsafePackLenAddress (fromIntegral len) ptr
     return $ Right x
 
 instance ToBytes [Char] where

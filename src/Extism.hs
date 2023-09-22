@@ -144,9 +144,11 @@ functionExists (Plugin plugin) name =
     b <- withCString name (extism_plugin_function_exists plugin')
     if b == 1 then return True else return False)
 
+-- Used to convert a value into linear memory
 class ToBytes a where
   toBytes :: a -> B.ByteString
 
+-- Used to read a value from linear memory
 class FromPointer a where
   fromPointer :: CString -> Int -> IO (Result a)
 
@@ -168,6 +170,7 @@ instance FromPointer [Char] where
       Left e -> return $ Left e
       Right bs -> return $ Right $ fromByteString bs
 
+-- Wraps a `JSON` value for input/output
 newtype JSONValue x = JSONValue x
 
 instance Extism.JSON.JSON a => ToBytes (JSONValue a)  where

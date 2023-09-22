@@ -30,6 +30,7 @@ module Extism (
 import Foreign.ForeignPtr
 import Foreign.C.String
 import Foreign.Ptr
+import GHC.Ptr
 import Foreign.Marshal.Array
 import Foreign.Marshal.Alloc
 import Foreign.Storable
@@ -37,7 +38,7 @@ import Foreign.StablePtr
 import Foreign.Concurrent
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
-import Data.ByteString.Internal (c2w, w2c)
+import Data.ByteString.Internal (c2w, w2c, unsafePackLenAddress)
 import Data.ByteString.Unsafe (unsafeUseAsCString)
 import qualified Text.JSON (encode, decode, toJSObject, showJSON, Result(..))
 import qualified Extism.JSON (JSON(..))
@@ -143,9 +144,11 @@ functionExists (Plugin plugin) name =
     b <- withCString name (extism_plugin_function_exists plugin')
     if b == 1 then return True else return False)
 
+-- Used to convert a value into linear memory
 class ToBytes a where
   toBytes :: a -> B.ByteString
 
+-- Used to read a value from linear memory
 class FromPointer a where
   fromPointer :: CString -> Int -> IO (Result a)
 
@@ -153,8 +156,8 @@ instance ToBytes B.ByteString where
   toBytes x = x
 
 instance FromPointer B.ByteString where
-  fromPointer ptr len = do
-    x <- B.packCStringLen (castPtr ptr, fromIntegral len)
+  fromPointer (Ptr ptr) len = do
+    x <- unsafePackLenAddress (fromIntegral len) ptr
     return $ Right x
 
 instance ToBytes [Char] where
@@ -167,6 +170,7 @@ instance FromPointer [Char] where
       Left e -> return $ Left e
       Right bs -> return $ Right $ fromByteString bs
 
+-- Wraps a `JSON` value for input/output
 newtype JSONValue x = JSONValue x
 
 instance Extism.JSON.JSON a => ToBytes (JSONValue a)  where

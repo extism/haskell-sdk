@@ -42,7 +42,8 @@ import Foreign.C.String
 import Foreign.StablePtr
 import Foreign.Concurrent
 import Foreign.Marshal.Array
-import qualified Data.ByteString.Internal as BS (c2w)
+import GHC.Ptr
+import qualified Data.ByteString.Internal as BS (c2w, unsafePackLenAddress)
 import Data.IORef
 
 -- | Access the plugin that is currently executing from inside a host function
@@ -76,19 +77,15 @@ memoryOffset (CurrentPlugin plugin _ _ _) (MemoryHandle offs) = do
 -- | Access the data associated with a handle as a 'ByteString'
 memoryBytes :: CurrentPlugin -> MemoryHandle ->  IO B.ByteString
 memoryBytes plugin offs = do
-  ptr <- memoryOffset plugin offs
+  Ptr ptr <- memoryOffset plugin offs
   len <- memoryLength plugin offs
-  arr <- peekArray (fromIntegral len) ptr
-  return $ B.pack arr
+  BS.unsafePackLenAddress (fromIntegral len) ptr
 
   
 -- | Access the data associated with a handle as a 'String'
 memoryString :: CurrentPlugin -> MemoryHandle ->  IO String
 memoryString plugin offs = do
-  ptr <- memoryOffset plugin offs
-  len <- memoryLength plugin offs
-  arr <- peekArray (fromIntegral len) ptr
-  return $ fromByteString $ B.pack arr   
+  fromByteString <$> memoryBytes plugin offs
 
 -- | Access the data associated with a handle and convert it into a Haskell type
 memoryGet :: FromPointer a => CurrentPlugin -> MemoryHandle -> IO (Result a)

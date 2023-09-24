@@ -23,6 +23,7 @@ module Extism (
   pluginID,
   unwrap,
   ToBytes(..),
+  Encoding,
   FromBytes(..),
   JSONValue(..)
 ) where
@@ -151,6 +152,9 @@ class ToBytes a where
 -- Used to read a value from linear memory
 class FromBytes a where
   fromBytes :: B.ByteString -> Result a
+
+-- Encoding is used to indicate a type implements both `ToBytes` and `FromBytes`
+class (ToBytes a, FromBytes a) => Encoding a where
 
 instance ToBytes B.ByteString where
   toBytes x = x

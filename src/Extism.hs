@@ -23,7 +23,7 @@ module Extism (
   pluginID,
   unwrap,
   ToBytes(..),
-  FromPointer(..),
+  FromBytes(..),
   JSONValue(..)
 ) where
 
@@ -149,26 +149,21 @@ class ToBytes a where
   toBytes :: a -> B.ByteString
 
 -- Used to read a value from linear memory
-class FromPointer a where
-  fromPointer :: CString -> Int -> IO (Result a)
+class FromBytes a where
+  fromBytes :: B.ByteString -> Result a
 
 instance ToBytes B.ByteString where
   toBytes x = x
 
-instance FromPointer B.ByteString where
-  fromPointer (Ptr ptr) len = do
-    x <- unsafePackLenAddress (fromIntegral len) ptr
-    return $ Right x
+instance FromBytes B.ByteString where
+  fromBytes b = Right b
 
 instance ToBytes [Char] where
   toBytes = toByteString
 
-instance FromPointer [Char] where
-  fromPointer ptr len = do
-    bs <- fromPointer ptr len
-    case bs of
-      Left e -> return $ Left e
-      Right bs -> return $ Right $ fromByteString bs
+instance FromBytes [Char] where
+  fromBytes bs = 
+    Right $ fromByteString bs
 
 -- Wraps a `JSON` value for input/output
 newtype JSONValue x = JSONValue x
@@ -178,19 +173,15 @@ instance Extism.JSON.JSON a => ToBytes (JSONValue a)  where
     toByteString $ Text.JSON.encode x
 
    
-instance Extism.JSON.JSON a => FromPointer (JSONValue a) where
-  fromPointer ptr len = do
-    s <- fromPointer ptr len
-    case s of
-      Left e -> return $ Left e
-      Right s -> 
-        case Text.JSON.decode s of
-          Text.JSON.Error x -> return $ Left (ExtismError x)
-          Text.JSON.Ok x -> return $ Right (JSONValue x)
+instance Extism.JSON.JSON a => FromBytes (JSONValue a) where
+  fromBytes bs = do
+    case Text.JSON.decode (fromByteString bs) of
+      Text.JSON.Error x -> Left (ExtismError x)
+      Text.JSON.Ok x -> Right (JSONValue x)
 
 
 --- | Call a function provided by the given plugin
-call :: (ToBytes a, FromPointer b) => Plugin -> String -> a -> IO (Result b)
+call :: (ToBytes a, FromBytes b) => Plugin -> String -> a -> IO (Result b)
 call (Plugin plugin) name inp =
   let input = toBytes inp in
   let length' = fromIntegral (B.length input) in
@@ -205,8 +196,9 @@ call (Plugin plugin) name inp =
     else if rc == 0
       then do
         len <- extism_plugin_output_length plugin'
-        ptr <- extism_plugin_output_data plugin'
-        fromPointer (castPtr ptr) (fromIntegral len)
+        Ptr ptr <- extism_plugin_output_data plugin'
+        x <- unsafePackLenAddress (fromIntegral len) ptr
+        return $ fromBytes x
     else return $ Left (ExtismError "Call failed"))
 
 -- | Create a new 'CancelHandle' that can be used to cancel a running plugin

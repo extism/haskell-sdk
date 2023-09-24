@@ -88,11 +88,10 @@ memoryString plugin offs = do
   fromByteString <$> memoryBytes plugin offs
 
 -- | Access the data associated with a handle and convert it into a Haskell type
-memoryGet :: FromPointer a => CurrentPlugin -> MemoryHandle -> IO (Result a)
+memoryGet :: FromBytes a => CurrentPlugin -> MemoryHandle -> IO (Result a)
 memoryGet plugin offs = do
-  ptr <- memoryOffset plugin offs
-  len <- memoryLength plugin offs
-  fromPointer (castPtr ptr) (fromIntegral len)
+  x <- memoryBytes plugin offs
+  return $ fromBytes x
 
 -- | Allocate memory and copy an existing 'ByteString' into it
 allocBytes :: CurrentPlugin -> B.ByteString -> IO MemoryHandle
@@ -172,7 +171,7 @@ output !p !index !x =
     if index >= len then return ()
     else pokeElemOff res index (toI64 mem)
 
-input :: FromPointer a => CurrentPlugin -> Int -> IO (Result a)
+input :: FromBytes a => CurrentPlugin -> Int -> IO (Result a)
 input plugin index =
   let (CurrentPlugin _ params _ _) = plugin in
   let x = fromI64 (params !! index) :: Maybe Word64 in

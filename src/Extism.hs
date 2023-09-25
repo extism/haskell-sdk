@@ -160,7 +160,7 @@ instance ToBytes B.ByteString where
   toBytes x = x
 
 instance FromBytes B.ByteString where
-  fromBytes b = Right b
+  fromBytes = Right
 
 instance ToBytes [Char] where
   toBytes = toByteString

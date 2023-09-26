@@ -13,7 +13,7 @@ hostFunctionManifest = manifest [wasmFile "../wasm/code-functions.wasm"]
 
 initPlugin :: IO Plugin
 initPlugin =
-  Extism.pluginFromManifest defaultManifest [] False >>= assertUnwrap
+  Extism.newPlugin defaultManifest [] False >>= assertUnwrap
 
 pluginFunctionExists = do
   p <- initPlugin 
@@ -38,7 +38,7 @@ hello plugin () = do
   output plugin 0 "{\"count\": 999}"
 
 pluginCallHostFunction = do
-  p <- Extism.pluginFromManifest hostFunctionManifest [] False >>= assertUnwrap
+  p <- Extism.newPlugin hostFunctionManifest [] False >>= assertUnwrap
   res <- call p "count_vowels" (toByteString "this is a test") >>= assertUnwrap
   assertEqual "count vowels output" "{\"count\": 999}" (fromByteString res)
 

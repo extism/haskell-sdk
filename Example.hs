@@ -14,7 +14,7 @@ main = do
   setLogFile "stdout" LogError
   let m = manifest [wasmFile "wasm/code-functions.wasm"]
   f <- hostFunction "hello_world" [I64] [I64] hello "Hello, again"
-  plugin <- unwrap <$> pluginFromManifest m [f] True
+  plugin <- unwrap <$> newPlugin m [f] True
   id <- pluginID plugin
   print id
   res <- unwrap <$> call plugin "count_vowels" "this is a test"

@@ -244,6 +244,11 @@ withTimeout :: Manifest -> Int -> Manifest
 withTimeout m t =
   m { timeout = nonNull t }
 
+-- | Set memory.max_pages
+withMaxPages :: Manifest -> Int -> Manifest
+withMaxPages m pages =
+  m { memory = NotNull $ Memory (NotNull pages) }
+
 toString :: (JSON a) => a -> String
 toString v =
   encode (showJSON v)

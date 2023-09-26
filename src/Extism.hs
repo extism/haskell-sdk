@@ -12,7 +12,6 @@ module Extism (
   fromByteString,
   extismVersion,
   newPlugin,
-  pluginFromManifest,
   isValid,
   setConfig,
   setLogFile,
@@ -46,6 +45,10 @@ import qualified Extism.JSON (JSON(..))
 import Extism.Manifest (Manifest, toString)
 import Extism.Bindings
 import qualified Data.UUID (UUID, fromByteString)
+import Data.Binary.Get (runGetOrFail, getWord32le, getInt32le, getWord64le, getInt64le, getFloatle, getDoublele)
+import Data.Binary.Put (runPut, putWord32le, putInt32le, putWord64le, putInt64le, putFloatle, putDoublele)
+import Data.Int
+import Data.Word
 
 -- | Host function, see 'Extism.HostFunction.hostFunction'
 data Function = Function (ForeignPtr ExtismFunction) (StablePtr ()) deriving Eq
@@ -79,10 +82,20 @@ extismVersion () = do
   v <- extism_version
   peekCString v
 
+class PluginInput a where
+  pluginInput :: a -> B.ByteString
+
+instance PluginInput B.ByteString where
+  pluginInput = id
+
+instance PluginInput Manifest where
+  pluginInput m = toByteString $ toString m
+
 -- | Create a 'Plugin' from a WASM module, `useWasi` determines if WASI should
 -- | be linked
-newPlugin :: B.ByteString -> [Function] -> Bool -> IO (Result Plugin)
-newPlugin wasm functions useWasi =
+newPlugin :: PluginInput a => a -> [Function] -> Bool -> IO (Result Plugin)
+newPlugin input functions useWasi =
+  let wasm = pluginInput input in
   let nfunctions = fromIntegral (length functions) in
   let length' = fromIntegral (B.length wasm) in
   let wasi = fromInteger (if useWasi then 1 else 0) in
@@ -95,18 +108,12 @@ newPlugin wasm functions useWasi =
           extism_plugin_new (castPtr s) length' funcs nfunctions wasi errmsg ))
       if p == nullPtr then do
         err <- peek errmsg
-        e <- peekCString err 
+        e <- peekCString err
         extism_plugin_new_error_free err
         return $ Left (ExtismError e)
       else do
         ptr <- Foreign.Concurrent.newForeignPtr p (extism_plugin_free p)
         return $ Right (Plugin ptr))
-
--- | Create a 'Plugin' from a 'Manifest'
-pluginFromManifest :: Manifest -> [Function] -> Bool -> IO (Result Plugin)
-pluginFromManifest manifest functions useWasi =
-  let wasm = toByteString $ toString manifest in
-  newPlugin wasm functions useWasi
 
 -- | Check if a 'Plugin' is valid
 isValid :: Plugin -> IO Bool
@@ -156,6 +163,12 @@ class FromBytes a where
 -- Encoding is used to indicate a type implements both `ToBytes` and `FromBytes`
 class (ToBytes a, FromBytes a) => Encoding a where
 
+instance ToBytes () where
+  toBytes () = toByteString ""
+
+instance FromBytes () where
+  fromBytes _ = Right ()
+
 instance ToBytes B.ByteString where
   toBytes x = x
 
@@ -166,8 +179,64 @@ instance ToBytes [Char] where
   toBytes = toByteString
 
 instance FromBytes [Char] where
-  fromBytes bs = 
+  fromBytes bs =
     Right $ fromByteString bs
+
+instance ToBytes Int32 where
+  toBytes i = B.toStrict (runPut (putInt32le i))
+
+instance FromBytes Int32 where
+  fromBytes bs =
+    case runGetOrFail getInt32le (B.fromStrict bs) of
+      Left (_, _, e) -> Left (ExtismError e)
+      Right (_, _, x) -> Right x
+
+instance ToBytes Int64 where
+  toBytes i = B.toStrict (runPut (putInt64le i))
+
+instance FromBytes Int64 where
+  fromBytes bs =
+    case runGetOrFail getInt64le (B.fromStrict bs) of
+      Left (_, _, e) -> Left (ExtismError e)
+      Right (_, _, x) -> Right x
+
+
+instance ToBytes Word32 where
+  toBytes i = B.toStrict (runPut (putWord32le i))
+
+instance FromBytes Word32 where
+  fromBytes bs =
+    case runGetOrFail getWord32le (B.fromStrict bs) of
+      Left (_, _, e) -> Left (ExtismError e)
+      Right (_, _, x) -> Right x
+
+instance ToBytes Word64 where
+  toBytes i = B.toStrict (runPut (putWord64le i))
+
+instance FromBytes Word64 where
+  fromBytes bs =
+    case runGetOrFail getWord64le (B.fromStrict bs) of
+      Left (_, _, e) -> Left (ExtismError e)
+      Right (_, _, x) -> Right x
+
+instance ToBytes Float where
+  toBytes i = B.toStrict (runPut (putFloatle i))
+
+instance FromBytes Float where
+  fromBytes bs =
+    case runGetOrFail getFloatle (B.fromStrict bs) of
+      Left (_, _, e) -> Left (ExtismError e)
+      Right (_, _, x) -> Right x
+
+instance ToBytes Double where
+  toBytes i = B.toStrict (runPut (putDoublele i))
+
+instance FromBytes Double where
+  fromBytes bs =
+    case runGetOrFail getDoublele (B.fromStrict bs) of
+      Left (_, _, e) -> Left (ExtismError e)
+      Right (_, _, x) -> Right x
+
 
 -- Wraps a `JSON` value for input/output
 newtype JSONValue x = JSONValue x
@@ -176,7 +245,7 @@ instance Extism.JSON.JSON a => ToBytes (JSONValue a)  where
   toBytes (JSONValue x) =
     toByteString $ Text.JSON.encode x
 
-   
+
 instance Extism.JSON.JSON a => FromBytes (JSONValue a) where
   fromBytes bs = do
     case Text.JSON.decode (fromByteString bs) of
@@ -223,10 +292,10 @@ pluginID (Plugin plugin) =
     ptr <- extism_plugin_id plugin'
     buf <- B.packCStringLen (castPtr ptr, 16)
     case Data.UUID.fromByteString (BL.fromStrict buf) of
-      Nothing -> error "Invalid Plugin ID" 
+      Nothing -> error "Invalid Plugin ID"
       Just x -> return x)
 
-    
+
 unwrap (Right x) = x
 unwrap (Left (ExtismError msg)) =
   error msg

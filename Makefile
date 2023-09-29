@@ -1,10 +1,10 @@
 .PHONY: test
 
+build:
+	cabal build
+
 prepare:
 	cabal update
-
-build: prepare
-	cabal build
 
 test: prepare
 	cabal test

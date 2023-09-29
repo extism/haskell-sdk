@@ -1,14 +1,14 @@
-import Test.HUnit
 import Extism
-import Extism.Manifest
 import Extism.HostFunction
-
+import Extism.Manifest
+import Test.HUnit
 
 assertUnwrap (Right x) = return x
 assertUnwrap (Left (ExtismError msg)) =
   assertFailure msg
 
 defaultManifest = manifest [wasmFile "../wasm/code.wasm"]
+
 hostFunctionManifest = manifest [wasmFile "../wasm/code-functions.wasm"]
 
 initPlugin :: IO Plugin
@@ -16,20 +16,19 @@ initPlugin =
   Extism.newPlugin defaultManifest [] False >>= assertUnwrap
 
 pluginFunctionExists = do
-  p <- initPlugin 
+  p <- initPlugin
   exists <- functionExists p "count_vowels"
   assertBool "function exists" exists
   exists' <- functionExists p "function_doesnt_exist"
   assertBool "function doesn't exist" (not exists')
 
 checkCallResult p = do
-  res <- call p "count_vowels" (toByteString "this is a test") >>= assertUnwrap
-  assertEqual "count vowels output" "{\"count\": 4}" (fromByteString res)
+  res <- call p "count_vowels" "this is a test" >>= assertUnwrap
+  assertEqual "count vowels output" "{\"count\": 4}" res
 
 pluginCall = do
-  p <- initPlugin 
+  p <- initPlugin
   checkCallResult p
-
 
 hello plugin () = do
   s <- unwrap <$> input plugin 0
@@ -39,16 +38,16 @@ hello plugin () = do
 
 pluginCallHostFunction = do
   p <- Extism.newPlugin hostFunctionManifest [] False >>= assertUnwrap
-  res <- call p "count_vowels" (toByteString "this is a test") >>= assertUnwrap
-  assertEqual "count vowels output" "{\"count\": 999}" (fromByteString res)
+  res <- call p "count_vowels" "this is a test" >>= assertUnwrap
+  assertEqual "count vowels output" "{\"count\": 999}" res
 
 pluginMultiple = do
-    p <- initPlugin
-    checkCallResult p
-    q <- initPlugin
-    r <- initPlugin
-    checkCallResult q
-    checkCallResult r
+  p <- initPlugin
+  checkCallResult p
+  q <- initPlugin
+  r <- initPlugin
+  checkCallResult q
+  checkCallResult r
 
 pluginConfig = do
   p <- initPlugin
@@ -62,13 +61,13 @@ testSetLogFile = do
 t name f = TestLabel name (TestCase f)
 
 main = do
-  runTestTT (TestList
-    [
-      t "Plugin.FunctionExists" pluginFunctionExists
-      , t "Plugin.Call" pluginCall
-      , t "Plugin.CallHostFunction" pluginCallHostFunction
-      , t "Plugin.Multiple" pluginMultiple
-      , t "Plugin.Config" pluginConfig
-      , t "SetLogFile" testSetLogFile
-    ])
-
+  runTestTT
+    ( TestList
+        [ t "Plugin.FunctionExists" pluginFunctionExists,
+          t "Plugin.Call" pluginCall,
+          t "Plugin.CallHostFunction" pluginCallHostFunction,
+          t "Plugin.Multiple" pluginMultiple,
+          t "Plugin.Config" pluginConfig,
+          t "SetLogFile" testSetLogFile
+        ]
+    )

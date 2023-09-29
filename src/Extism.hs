@@ -1,7 +1,7 @@
 -- |
 -- A Haskell Extism host
 --
--- Requires a libextism installation, see https://extism.org/docs/install
+-- Requires a libextism installation, see [https://extism.org/docs/install](https://extism.org/docs/install)
 module Extism
   ( module Extism.Manifest,
     Function (..),

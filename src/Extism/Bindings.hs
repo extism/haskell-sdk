@@ -122,6 +122,8 @@ foreign import ccall safe "extism.h extism_function_new" extism_function_new :: 
 
 foreign import ccall safe "extism.h extism_function_free" extism_function_free :: Ptr ExtismFunction -> IO ()
 
+foreign import ccall safe "extism.h extism_function_set_namespace" extism_function_set_namespace :: Ptr ExtismFunction -> CString -> IO ()
+
 foreign import ccall safe "extism.h extism_current_plugin_memory" extism_current_plugin_memory :: Ptr ExtismCurrentPlugin -> IO (Ptr Word8)
 
 foreign import ccall safe "extism.h extism_current_plugin_memory_alloc" extism_current_plugin_memory_alloc :: Ptr ExtismCurrentPlugin -> Word64 -> IO Word64

@@ -33,7 +33,7 @@ import Data.ByteString.Internal (c2w, unsafePackLenAddress, w2c)
 import qualified Data.ByteString.Lazy as BL
 import Data.ByteString.Unsafe (unsafeUseAsCString)
 import Data.Int
-import qualified Data.UUID (UUID, fromByteString)
+import qualified Data.UUID (UUID, fromByteString, toString)
 import Data.Word
 import Extism.Bindings
 import Extism.Encoding
@@ -54,10 +54,10 @@ import qualified Text.JSON (Result (..), decode, encode, showJSON, toJSObject)
 data Function = Function (ForeignPtr ExtismFunction) (StablePtr ()) deriving (Eq)
 
 -- | Plugins can be used to call WASM function
-newtype Plugin = Plugin (ForeignPtr ExtismPlugin) deriving (Eq)
+newtype Plugin = Plugin (ForeignPtr ExtismPlugin) deriving (Eq, Show)
 
 -- | Cancellation handle for Plugins
-newtype CancelHandle = CancelHandle (Ptr ExtismCancelHandle)
+newtype CancelHandle = CancelHandle (Ptr ExtismCancelHandle) deriving (Eq, Show)
 
 -- | Log level
 data LogLevel = LogError | LogWarn | LogInfo | LogDebug | LogTrace deriving (Show, Eq)

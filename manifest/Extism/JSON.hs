@@ -1,31 +1,43 @@
-module Extism.JSON (
-  module Extism.JSON,
-  module Text.JSON
-) where
+module Extism.JSON
+  ( module Extism.JSON,
+    module Text.JSON,
+  )
+where
 
-import Text.JSON
 import qualified Data.ByteString as B
-import Data.ByteString.Internal (c2w, w2c)
 import qualified Data.ByteString.Base64 as B64
 import qualified Data.ByteString.Char8 as BS (unpack)
+import Data.ByteString.Internal (c2w, w2c)
+import Text.JSON
 
-data Nullable a = Null | NotNull a deriving Eq
+data Nullable a = Null | NotNull a deriving (Eq, Show)
 
 makeArray x = JSArray [showJSON a | a <- x]
+
 isNull JSNull = True
 isNull _ = False
+
 filterNulls obj = [(a, b) | (a, b) <- obj, not (isNull b)]
+
 object x = makeObj $ filterNulls x
+
 objectWithNulls = makeObj
+
 nonNull = NotNull
+
 null' = Null
+
 (.=) a b = (a, showJSON b)
+
 toNullable (Just x) = NotNull x
 toNullable Nothing = Null
+
 fromNullable (NotNull x) = Just x
 fromNullable Null = Nothing
+
 fromNotNull (NotNull x) = x
 fromNotNull Null = error "Value is Null"
+
 mapNullable f Null = Null
 mapNullable f (NotNull x) = NotNull (f x)
 
@@ -34,27 +46,27 @@ mapNullable f (NotNull x) = NotNull (f x)
     Ok x -> NotNull x
     Error _ -> Null
 (.?) _ _ = Null
+
 (.??) a k = toNullable $ lookup k a
 
-find :: JSON a => String -> JSValue -> Nullable a
+find :: (JSON a) => String -> JSValue -> Nullable a
 find k obj = obj .? k
 
-update :: JSON a => String -> a -> JSValue -> JSValue
+update :: (JSON a) => String -> a -> JSValue -> JSValue
 update k v (JSObject obj) = object $ fromJSObject obj ++ [k .= v]
 
-instance JSON a => JSON (Nullable a) where
+instance (JSON a) => JSON (Nullable a) where
   showJSON (NotNull x) = showJSON x
   showJSON Null = JSNull
   readJSON JSNull = Ok Null
   readJSON x = readJSON x
-
 
 newtype Base64 = Base64 B.ByteString deriving (Eq, Show)
 
 instance JSON Base64 where
   showJSON (Base64 bs) = showJSON (BS.unpack $ B64.encode bs)
   readJSON (JSString s) =
-    let toByteString x = B.pack (Prelude.map c2w x) in
-    case B64.decode (toByteString (fromJSString s)) of
-    Left msg -> Error msg
-    Right d -> Ok (Base64 d)
+    let toByteString x = B.pack (Prelude.map c2w x)
+     in case B64.decode (toByteString (fromJSString s)) of
+          Left msg -> Error msg
+          Right d -> Ok (Base64 d)

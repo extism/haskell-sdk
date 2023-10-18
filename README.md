@@ -92,6 +92,10 @@ with `wasm/code-functions.wasm`
 
 [Host functions](https://extism.org/docs/concepts/host-functions) allow us to grant new capabilities to our plug-ins from our application. They are simply some OCaml functions you write which can be passed down and invoked from any language inside the plug-in.
 
+Using [Extism.hostFunction](https://hackage.haskell.org/package/extism/docs/Extism.html#v:hostFunction) we can define a host function that can be called from the guest plug-in.
+
+In this example, we want to expose a single function to our plugin (in Haskell types): `hello_world :: String -> String` which will intercept the original result and replace it with a new one.
+
 Let's load the manifest like usual but load up `wasm/code-functions.wasm` plug-in:
 
 ```haskell
@@ -117,9 +121,5 @@ main = do
   putStrLn res
 -- Prints: {"count": 999}
 ```
-
-Using [Extism.hostFunction](https://hackage.haskell.org/package/extism/docs/Extism.html#v:hostFunction) we can define a host function that can be called from the guest plug-in.
-
-We want to expose a single function to our plugin (in Haskell types): `hello_world :: String -> String` which will intercept the original result and replace it with a new one.
 
 > *Note*: In order to write host functions you should get familiar with the methods on the [Extism.HostFunction](https://hackage.haskell.org/package/extism/docs/Extism-HostFunction.html) module.

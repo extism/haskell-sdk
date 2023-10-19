@@ -27,6 +27,7 @@ module Extism.HostFunction
     fromF32,
     fromF64,
     hostFunction,
+    hostFunction',
     input,
     output,
     getParams,
@@ -185,13 +186,7 @@ callback f plugin params nparams results nresults ptr = do
   (userData, _, _) <- deRefStablePtr (castPtrToStablePtr ptr)
   f (CurrentPlugin plugin p results (fromIntegral nresults)) userData
 
--- | Create a new 'Function' that can be called from a 'Plugin' in the default namespace ('env')
-hostFunction :: String -> [ValType] -> [ValType] -> (CurrentPlugin -> a -> IO ()) -> a -> IO Function
-hostFunction = hostFunctionWithNamespace "env"
-
--- | Create a new 'Function' that can be called from a 'Plugin' in the given namespace
-hostFunctionWithNamespace :: String -> String -> [ValType] -> [ValType] -> (CurrentPlugin -> a -> IO ()) -> a -> IO Function
-hostFunctionWithNamespace ns name params results f v =
+hostFunctionWithNamespace' ns name params results f v =
   let nparams = fromIntegral $ length params
    in let nresults = fromIntegral $ length results
        in do
@@ -214,6 +209,18 @@ hostFunctionWithNamespace ns name params results f v =
                       )
                 )
             let freeFn = extism_function_free x
-            withCString ns (extism_function_set_namespace x)
+            case ns of
+              Nothing -> return ()
+              Just ns -> withCString ns (extism_function_set_namespace x)
             fptr <- Foreign.Concurrent.newForeignPtr x freeFn
             return $ Function fptr (castPtrToStablePtr userDataPtr)
+
+-- | 'hostFunction "function_name" inputTypes outputTypes callback userData' creates a new
+-- | 'Function' in the default namespace that can be called from a 'Plugin'
+hostFunction :: String -> [ValType] -> [ValType] -> (CurrentPlugin -> a -> IO ()) -> a -> IO Function
+hostFunction = hostFunctionWithNamespace' Nothing
+
+-- | 'hostFunction "function_name" inputTypes outputTypes callback userData' creates a new
+-- | 'Function' in the provided namespace that can be called from a 'Plugin'
+hostFunction' :: String -> String -> [ValType] -> [ValType] -> (CurrentPlugin -> a -> IO ()) -> a -> IO Function
+hostFunction' ns = hostFunctionWithNamespace' (Just ns)

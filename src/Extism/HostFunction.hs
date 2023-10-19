@@ -220,7 +220,7 @@ hostFunctionWithNamespace' ns name params results f v =
 hostFunction :: String -> [ValType] -> [ValType] -> (CurrentPlugin -> a -> IO ()) -> a -> IO Function
 hostFunction = hostFunctionWithNamespace' Nothing
 
--- | 'hostFunction "function_name" inputTypes outputTypes callback userData' creates a new
+-- | 'hostFunction' "namespace" "function_name" inputTypes outputTypes callback userData' creates a new
 -- | 'Function' in the provided namespace that can be called from a 'Plugin'
 hostFunction' :: String -> String -> [ValType] -> [ValType] -> (CurrentPlugin -> a -> IO ()) -> a -> IO Function
 hostFunction' ns = hostFunctionWithNamespace' (Just ns)

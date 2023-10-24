@@ -2,10 +2,10 @@ module Main where
 
 import Extism
 import Extism.HostFunction
-import Extism.Manifest(manifest, wasmFile)
+import Extism.Manifest (manifest, wasmFile)
 
 hello currPlugin msg = do
-  putStrLn <$> unwrap <$> input currPlugin 0
+  putStrLn . unwrap <$> input currPlugin 0
   putStrLn "Hello from Haskell!"
   putStrLn msg
   output currPlugin 0 "{\"count\": 999}"

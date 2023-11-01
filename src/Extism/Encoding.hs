@@ -21,7 +21,8 @@ import Data.ByteString.Internal (c2w, unsafePackLenAddress, w2c)
 import Data.Int
 import Data.Word
 import qualified Extism.JSON (JSON (..))
-import qualified Text.JSON (Result (..), decode, encode, showJSON, toJSObject)
+import qualified Text.JSON (JSValue, Result (..), decode, encode, showJSON, toJSObject)
+import qualified Text.JSON.Generic (Data, decodeJSON, encodeJSON, fromJSON, toJSON)
 
 -- | Helper function to convert a 'String' to a 'ByteString'
 toByteString :: String -> B.ByteString
@@ -124,12 +125,16 @@ instance FromBytes Double where
 -- Wraps a `JSON` value for input/output
 newtype JSONValue x = JSONValue x
 
-instance (Extism.JSON.JSON a) => ToBytes (JSONValue a) where
+instance (Text.JSON.Generic.Data a) => ToBytes (JSONValue a) where
   toBytes (JSONValue x) =
-    toByteString $ Text.JSON.encode x
+    toByteString $ Text.JSON.Generic.encodeJSON x
 
-instance (Extism.JSON.JSON a) => FromBytes (JSONValue a) where
-  fromBytes bs = do
-    case Text.JSON.decode (fromByteString bs) of
-      Text.JSON.Error x -> Left (ExtismError x)
-      Text.JSON.Ok x -> Right (JSONValue x)
+instance (Text.JSON.Generic.Data a) => FromBytes (JSONValue a) where
+  fromBytes bs =
+    let x = Text.JSON.decode (fromByteString bs)
+     in case x of
+          Text.JSON.Error e -> Left (ExtismError e)
+          Text.JSON.Ok x ->
+            case Text.JSON.Generic.fromJSON (x :: Text.JSON.JSValue) of
+              Text.JSON.Error e -> Left (ExtismError e)
+              Text.JSON.Ok x -> Right (JSONValue x)

@@ -24,7 +24,7 @@ module Extism
     ToBytes (..),
     Encoding,
     FromBytes (..),
-    JSONValue (..),
+    JSON (..),
   )
 where
 
@@ -37,8 +37,7 @@ import qualified Data.UUID (UUID, fromByteString, toString)
 import Data.Word
 import Extism.Bindings
 import Extism.Encoding
-import qualified Extism.JSON (JSON (..))
-import Extism.Manifest (Manifest, toString)
+import Extism.Manifest (Manifest)
 import Foreign.C.String
 import Foreign.Concurrent
 import Foreign.ForeignPtr
@@ -76,7 +75,7 @@ instance PluginInput B.ByteString where
   pluginInput = id
 
 instance PluginInput Manifest where
-  pluginInput m = toByteString $ toString m
+  pluginInput m = toByteString $ Text.JSON.encode m
 
 -- | Create a 'Plugin' from a WASM module, `useWasi` determines if WASI should
 -- | be linked

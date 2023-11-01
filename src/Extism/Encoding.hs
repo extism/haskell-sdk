@@ -10,7 +10,7 @@ module Extism.Encoding
     ToBytes (..),
     FromBytes (..),
     Encoding (..),
-    JSONValue (..),
+    JSON (..),
   )
 where
 
@@ -20,7 +20,6 @@ import qualified Data.ByteString as B
 import Data.ByteString.Internal (c2w, unsafePackLenAddress, w2c)
 import Data.Int
 import Data.Word
-import qualified Extism.JSON (JSON (..))
 import qualified Text.JSON (JSValue, Result (..), decode, encode, showJSON, toJSObject)
 import qualified Text.JSON.Generic (Data, decodeJSON, encodeJSON, fromJSON, toJSON)
 
@@ -123,13 +122,13 @@ instance FromBytes Double where
       Right (_, _, x) -> Right x
 
 -- Wraps a `JSON` value for input/output
-newtype JSONValue x = JSONValue x
+newtype JSON x = JSON x
 
-instance (Text.JSON.Generic.Data a) => ToBytes (JSONValue a) where
-  toBytes (JSONValue x) =
+instance (Text.JSON.Generic.Data a) => ToBytes (JSON a) where
+  toBytes (JSON x) =
     toByteString $ Text.JSON.Generic.encodeJSON x
 
-instance (Text.JSON.Generic.Data a) => FromBytes (JSONValue a) where
+instance (Text.JSON.Generic.Data a) => FromBytes (JSON a) where
   fromBytes bs =
     let x = Text.JSON.decode (fromByteString bs)
      in case x of
@@ -137,4 +136,4 @@ instance (Text.JSON.Generic.Data a) => FromBytes (JSONValue a) where
           Text.JSON.Ok x ->
             case Text.JSON.Generic.fromJSON (x :: Text.JSON.JSValue) of
               Text.JSON.Error e -> Left (ExtismError e)
-              Text.JSON.Ok x -> Right (JSONValue x)
+              Text.JSON.Ok x -> Right (JSON x)

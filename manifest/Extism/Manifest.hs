@@ -3,6 +3,7 @@ module Extism.Manifest where
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as BS (unpack)
 import Extism.JSON
+import Text.JSON
 
 -- | Memory options
 newtype Memory = Memory
@@ -234,7 +235,3 @@ withTimeout m t =
 withMaxPages :: Manifest -> Int -> Manifest
 withMaxPages m pages =
   m {memory = NotNull $ Memory (NotNull pages)}
-
-toString :: (JSON a) => a -> String
-toString v =
-  encode (showJSON v)

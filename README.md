@@ -99,27 +99,33 @@ In this example, we want to expose a single function to our plugin (in Haskell t
 Let's load the manifest like usual but load up `wasm/code-functions.wasm` plug-in:
 
 ```haskell
+{-# LANGUAGE DeriveDataTypeable #-}
+
 module Main where
 
 import Extism
 import Extism.HostFunction
+import Extism.JSON
 import Extism.Manifest (manifest, wasmFile)
 
-hello currPlugin () = do
+newtype Count = Count {count :: Int} deriving (Data, Typeable, Show)
+
+hello currPlugin msg = do
   putStrLn . unwrap <$> input currPlugin 0
   putStrLn "Hello from Haskell!"
-  output currPlugin 0 "{\"count\": 999}"
+  putStrLn msg
+  output currPlugin 0 (JSON $ Count 999)
 
 main = do
-  setLogFile "stdout" LogError -- Enable logging to stdout
+  setLogFile "stdout" LogError
   let m = manifest [wasmFile "wasm/code-functions.wasm"]
-  f <- hostFunction "hello_world" [I64] [I64] hello () -- Create host function, the final argument 
-                                                       -- is a userData argument that can store any
-                                                       -- Haskell value 
+  f <- hostFunction "hello_world" [I64] [I64] hello "Hello, again"
   plugin <- unwrap <$> newPlugin m [f] True
-  res <- unwrap <$> call plugin "count_vowels" "this is a test"
-  putStrLn res
--- Prints: {"count": 999}
+  id <- pluginID plugin
+  print id
+  JSON res <- (unwrap <$> call plugin "count_vowels" "this is a test" :: IO (JSON Count))
+  print res
+-- Prints: Count {count = 999}
 ```
 
 > *Note*: In order to write host functions you should get familiar with the methods on the [Extism.HostFunction](https://hackage.haskell.org/package/extism/docs/Extism-HostFunction.html) module.

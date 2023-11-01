@@ -4,6 +4,7 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as BS (unpack)
 import Extism.JSON
 import Text.JSON
+import Text.JSON.Generic
 
 -- | Memory options
 newtype Memory = Memory
@@ -235,3 +236,20 @@ withTimeout m t =
 withMaxPages :: Manifest -> Int -> Manifest
 withMaxPages m pages =
   m {memory = NotNull $ Memory (NotNull pages)}
+
+fromString :: String -> Either String Manifest
+fromString s = do
+  let x = decode s
+  resultToEither x
+
+fromFile :: FilePath -> IO (Either String Manifest)
+fromFile path = do
+  s <- readFile path
+  return $ fromString s
+
+toString :: Manifest -> String
+toString = encode
+
+toFile :: FilePath -> Manifest -> IO ()
+toFile path m = do
+  writeFile path (toString m)

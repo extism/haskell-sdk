@@ -1,6 +1,7 @@
 module Extism.JSON
   ( module Extism.JSON,
     module Text.JSON,
+    module Text.JSON.Generic,
   )
 where
 
@@ -9,6 +10,7 @@ import qualified Data.ByteString.Base64 as B64
 import qualified Data.ByteString.Char8 as BS (unpack)
 import Data.ByteString.Internal (c2w, w2c)
 import Text.JSON
+import Text.JSON.Generic
 
 data Nullable a = Null | NotNull a deriving (Eq, Show)
 

@@ -1,7 +1,7 @@
 module Extism.JSON
   ( module Extism.JSON,
-    module Text.JSON,
-    module Text.JSON.Generic,
+    Data,
+    Typeable,
   )
 where
 

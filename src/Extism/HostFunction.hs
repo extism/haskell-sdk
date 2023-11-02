@@ -32,6 +32,7 @@ module Extism.HostFunction
     output,
     getParams,
     setResults,
+    ptr,
   )
 where
 
@@ -50,6 +51,9 @@ import Foreign.Ptr
 import Foreign.StablePtr
 import Foreign.Storable
 import GHC.Ptr
+
+ptr :: ValType
+ptr = I64
 
 -- | Access the plugin that is currently executing from inside a host function
 data CurrentPlugin = CurrentPlugin (Ptr ExtismCurrentPlugin) [Val] (Ptr Val) Int

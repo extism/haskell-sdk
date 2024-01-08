@@ -1,5 +1,5 @@
 # Revision history for extism-manifest
 
-## 0.1.0.0 -- YYYY-mm-dd
+## 1.0.0.0 -- 2024-01-08
 
-* First version. Released on an unsuspecting world.
+* Extism 1.0 compatible release

@@ -14,8 +14,6 @@ Documentation is available at [https://hackage.haskell.org/package/extism](https
 
 For this library, you first need to install the Extism Runtime. You can [download the shared object directly from a release](https://github.com/extism/extism/releases) or use the [Extism CLI](https://github.com/extism/cli) to install it.
 
-> **Note**: This library has breaking changes and targets 1.0 of the runtime. For the time being, install the runtime from our nightly development builds on git: `sudo PATH="$PATH" env extism lib install --version git`.
-
 ### Add the library to dune
 
 Then add `extism` to your [cabal](https://www.haskell.org/cabal/) file:

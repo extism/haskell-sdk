@@ -134,7 +134,7 @@ foreign import ccall safe "extism.h extism_current_plugin_memory_free" extism_cu
 
 freePtr ptr = do
   let s = castPtrToStablePtr ptr
-  (_, b, c) <- deRefStablePtr s
+  (_, b, c, _) <- deRefStablePtr s
   freeHaskellFunPtr b
   freeHaskellFunPtr c
   freeStablePtr s

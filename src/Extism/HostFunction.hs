@@ -187,16 +187,17 @@ input plugin index =
 callback :: (CurrentPlugin -> a -> IO ()) -> (Ptr ExtismCurrentPlugin -> Ptr Val -> Word64 -> Ptr Val -> Word64 -> Ptr () -> IO ())
 callback f plugin params nparams results nresults ptr = do
   p <- peekArray (fromIntegral nparams) params
-  (userData, _, _) <- deRefStablePtr (castPtrToStablePtr ptr)
+  (userData, _, _, _) <- deRefStablePtr (castPtrToStablePtr ptr)
   f (CurrentPlugin plugin p results (fromIntegral nresults)) userData
 
 hostFunctionWithNamespace' ns name params results f v =
   let nparams = fromIntegral $ length params
    in let nresults = fromIntegral $ length results
        in do
-            cb <- callbackWrap (callback f)
+            let g = callback f
+            cb <- callbackWrap g
             free <- freePtrWrap freePtr
-            userData <- newStablePtr (v, free, cb)
+            userData <- newStablePtr (v, free, cb, g)
             let userDataPtr = castStablePtrToPtr userData
             x <-
               withCString

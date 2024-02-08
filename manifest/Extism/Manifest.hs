@@ -7,19 +7,23 @@ import Text.JSON
 import Text.JSON.Generic
 
 -- | Memory options
-newtype Memory = Memory
-  { memoryMaxPages :: Nullable Int
+data Memory = Memory
+  { memoryMaxPages :: Nullable Int,
+    memoryMaxHttpResponseBytes :: Nullable Int
   }
   deriving (Eq, Show)
 
 instance JSON Memory where
-  showJSON (Memory max) =
+  showJSON (Memory max maxHttp) =
     object
-      [ "max_pages" .= max
+      [ "max_pages" .= max,
+        "max_http_response_bytes" .= maxHttp
       ]
   readJSON obj =
-    let max = obj .? "max_pages"
-     in Ok (Memory max)
+    let 
+       max = obj .? "max_pages"
+       httpMax = obj .? "max_http_response_bytes"
+     in Ok (Memory max httpMax)
 
 -- | HTTP request
 data HTTPRequest = HTTPRequest
@@ -235,7 +239,21 @@ withTimeout m t =
 -- | Set memory.max_pages
 withMaxPages :: Manifest -> Int -> Manifest
 withMaxPages m pages =
-  m {memory = NotNull $ Memory (NotNull pages)}
+  case memory m of
+  Null ->
+    m {memory = NotNull $ Memory (NotNull pages) Null}
+  NotNull (Memory _ x) ->
+    m {memory = NotNull $ Memory (NotNull pages) x}
+
+    
+-- | Set memory.max_http_response_bytes
+withMaxHttpResponseBytes :: Manifest -> Int -> Manifest
+withMaxHttpResponseBytes m max =
+  case memory m of
+  Null ->
+    m {memory = NotNull $ Memory Null (NotNull max)}
+  NotNull (Memory x _) ->
+    m {memory = NotNull $ Memory x (NotNull max)}
 
 fromString :: String -> Either String Manifest
 fromString s = do

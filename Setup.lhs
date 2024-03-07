@@ -69,7 +69,8 @@ in Cabal https://github.com/haskell/cabal/issues/7906
 >   putStrLn "******************************************************************"
 >   putStrLn "Call `cargo build --release` to build a dependency written in Rust"
 >   -- FIXME: add `--target $TARGET` flag to support cross-compiling to $TARGET
->   rawSystemExit (fromFlag $ buildVerbosity flags) "cargo" ["build","--release"]
+>   -- rawSystemExit (fromFlag $ buildVerbosity flags) "cargo" ["build","--release"]
+>   rawSystemExit (fromFlag $ buildVerbosity flags) "bash" ["./scripts/download-or-build.sh"]
 >   putStrLn "... `rustc` compilation seems to succeed 🦀! Back to Cabal build:"
 >   putStrLn "******************************************************************"
 >   putStrLn "Back to Cabal build"

@@ -11,7 +11,7 @@ if ! [ -x "$(command -v extism)" ]; then
   echo 'Extism CLI is not installed. Building Extism using cargo' >&2
   cargo build --release
 else
-  extism lib install --prefix ./target/extism
+  extism lib install --prefix ./target/extism --version v1.1
   mkdir -p ./target/release
   cp ./target/extism/lib/libextism.a ./target/release/libextism_hs.a
 fi

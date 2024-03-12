@@ -12,7 +12,11 @@ extra-doc-files: cabal.project README.md CHANGELOG.md
 
 build-type:         Custom
 custom-setup
-    setup-depends:  Cabal, base, directory, process
+    setup-depends:
+        Cabal >= 3.0 && < 4,
+        base  >= 4.16.1 && < 5,
+        directory >= 1.3 && < 2,
+        process >=1.2.1.0 && < 2
 
 library
     exposed-modules:    Extism, Extism.HostFunction, Extism.Encoding

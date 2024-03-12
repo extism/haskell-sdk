@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               extism
-version:            1.2.0.2
+version:            1.2.0.3
 license:            BSD-3-Clause
 maintainer:         oss@extism.org
 author:             Extism authors
@@ -9,15 +9,8 @@ synopsis:           Extism bindings
 description:        Bindings to Extism, the universal plugin system
 category:           Plugins, WebAssembly
 extra-doc-files: cabal.project README.md CHANGELOG.md
-extra-source-files: Cargo.toml src/lib.rs scripts/download-or-build.sh
 
-build-type:         Custom
-custom-setup
-    setup-depends:
-        Cabal >= 3.0 && < 4,
-        base  >= 4.16.1 && < 5,
-        directory >= 1.3 && < 2,
-        process >=1.2.1.0 && < 2
+build-type:         Simple
 
 library
     exposed-modules:    Extism, Extism.HostFunction, Extism.Encoding
@@ -25,9 +18,8 @@ library
     hs-source-dirs:     src
     other-modules:      Extism.Bindings
     default-language:   Haskell2010
-    extra-bundled-libraries: extism_hs
-    -- extra-libraries:    extism
-    -- extra-lib-dirs:     /usr/local/lib
+    extra-libraries:    extism
+    extra-lib-dirs:     /usr/local/lib
     build-depends:
         base              >= 4.16.1 && < 5,
         bytestring        >= 0.11.3 && <= 0.12,

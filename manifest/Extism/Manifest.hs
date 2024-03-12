@@ -18,10 +18,8 @@ instance JSON Memory where
   showJSON (Memory max maxHttp maxVar) =
     object
       [ "max_pages" .= max,
-        "max_http_response_bytes"
-          .= maxHttp
-            "max_var_bytes"
-          .= maxVar
+        "max_http_response_bytes" .= maxHttp,
+        "max_var_bytes" .= maxVar
       ]
   readJSON obj =
     let max = obj .? "max_pages"

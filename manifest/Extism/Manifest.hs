@@ -9,21 +9,23 @@ import Text.JSON.Generic
 -- | Memory options
 data Memory = Memory
   { memoryMaxPages :: Nullable Int,
-    memoryMaxHttpResponseBytes :: Nullable Int
+    memoryMaxHttpResponseBytes :: Nullable Int,
+    memoryMaxVarBytes :: Nullable Int
   }
   deriving (Eq, Show)
 
 instance JSON Memory where
-  showJSON (Memory max maxHttp) =
+  showJSON (Memory max maxHttp maxVar) =
     object
       [ "max_pages" .= max,
-        "max_http_response_bytes" .= maxHttp
+        "max_http_response_bytes" .= maxHttp,
+        "max_var_bytes" .= maxVar
       ]
   readJSON obj =
-    let 
-       max = obj .? "max_pages"
-       httpMax = obj .? "max_http_response_bytes"
-     in Ok (Memory max httpMax)
+    let max = obj .? "max_pages"
+        httpMax = obj .? "max_http_response_bytes"
+        maxVar = obj .? "max_var_bytes"
+     in Ok (Memory max httpMax maxVar)
 
 -- | HTTP request
 data HTTPRequest = HTTPRequest
@@ -240,20 +242,28 @@ withTimeout m t =
 withMaxPages :: Manifest -> Int -> Manifest
 withMaxPages m pages =
   case memory m of
-  Null ->
-    m {memory = NotNull $ Memory (NotNull pages) Null}
-  NotNull (Memory _ x) ->
-    m {memory = NotNull $ Memory (NotNull pages) x}
+    Null ->
+      m {memory = NotNull $ Memory (NotNull pages) Null Null}
+    NotNull (Memory _ x y) ->
+      m {memory = NotNull $ Memory (NotNull pages) x y}
 
-    
 -- | Set memory.max_http_response_bytes
 withMaxHttpResponseBytes :: Manifest -> Int -> Manifest
 withMaxHttpResponseBytes m max =
   case memory m of
-  Null ->
-    m {memory = NotNull $ Memory Null (NotNull max)}
-  NotNull (Memory x _) ->
-    m {memory = NotNull $ Memory x (NotNull max)}
+    Null ->
+      m {memory = NotNull $ Memory Null (NotNull max) Null}
+    NotNull (Memory x _ y) ->
+      m {memory = NotNull $ Memory x (NotNull max) y}
+
+-- | Set memory.max_var_bytes
+withMaxVarBytes :: Manifest -> Int -> Manifest
+withMaxVarBytes m max =
+  case memory m of
+    Null ->
+      m {memory = NotNull $ Memory Null Null (NotNull max)}
+    NotNull (Memory x y _) ->
+      m {memory = NotNull $ Memory x y (NotNull max)}
 
 fromString :: String -> Either String Manifest
 fromString s = do

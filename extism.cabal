@@ -9,7 +9,7 @@ synopsis:           Extism bindings
 description:        Bindings to Extism, the universal plugin system
 category:           Plugins, WebAssembly
 extra-doc-files: cabal.project README.md CHANGELOG.md
-extra-source-files: scripts/download-or-build.sh
+extra-source-files: Cargo.toml src/lib.rs scripts/download-or-build.sh
 
 build-type:         Custom
 custom-setup

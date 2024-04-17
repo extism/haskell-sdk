@@ -4,6 +4,7 @@
 -- Requires a libextism installation, see [https://extism.org/docs/install](https://extism.org/docs/install)
 module Extism
   ( module Extism.Manifest,
+    module Extism.Encoding,
     Function (..),
     Plugin (..),
     CancelHandle (..),
@@ -22,9 +23,10 @@ module Extism
     pluginID,
     unwrap,
     ToBytes (..),
-    Encoding,
     FromBytes (..),
     JSON (..),
+    PluginInput (..),
+    reset,
   )
 where
 
@@ -219,6 +221,10 @@ pluginID (Plugin plugin) =
           Nothing -> error "Invalid Plugin ID"
           Just x -> return x
     )
+
+reset :: Plugin -> IO ()
+reset (Plugin plugin) =
+  withForeignPtr plugin extism_plugin_reset
 
 unwrap (Right x) = x
 unwrap (Left (ExtismError msg)) =

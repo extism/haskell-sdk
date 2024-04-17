@@ -1,6 +1,7 @@
 import Extism
 import Extism.HostFunction
 import Extism.Manifest
+import Extism.Pool
 import Test.HUnit
 
 assertUnwrap (Right x) = return x
@@ -58,6 +59,9 @@ testSetLogFile = do
   b <- setLogFile "stderr" Extism.LogError
   assertBool "set log file" b
 
+testPool = do
+  pool <- newPool
+
 t name f = TestLabel name (TestCase f)
 
 main = do
@@ -68,6 +72,11 @@ main = do
           t "Plugin.CallHostFunction" pluginCallHostFunction,
           t "Plugin.Multiple" pluginMultiple,
           t "Plugin.Config" pluginConfig,
-          t "SetLogFile" testSetLogFile
+          t
+            "SetLogFile"
+            testSetLogFile
+            t
+            "Pool"
+            testPool
         ]
     )

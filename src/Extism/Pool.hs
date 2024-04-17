@@ -1,5 +1,9 @@
 module Extism.Pool
   ( Pool,
+    newPool,
+    addPlugin,
+    withPlugin',
+    withPlugin,
   )
 where
 

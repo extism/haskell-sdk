@@ -60,7 +60,10 @@ testSetLogFile = do
   assertBool "set log file" b
 
 testPool = do
-  pool <- newPool
+  pool <- addPlugin "test" defaultManifest [] True empty
+  withPlugin pool "test" checkCallResult
+  where
+    empty = newPool 1
 
 t name f = TestLabel name (TestCase f)
 
@@ -74,8 +77,8 @@ main = do
           t "Plugin.Config" pluginConfig,
           t
             "SetLogFile"
-            testSetLogFile
-            t
+            testSetLogFile,
+          t
             "Pool"
             testPool
         ]

@@ -38,10 +38,12 @@ module Main where
 import Extism
 
 main = do
-  let wasm = wasmURL "GET" "https://github.com/extism/plugins/releases/latest/download/count_vowels.wasm"
   plugin <- unwrap <$> newPlugin (manifest [wasm]) [] True
   res <- unwrap <$> call plugin "count_vowels" "Hello, world!"
   putStrLn res
+  where
+    wasm = wasmURL "GET" "https://github.com/extism/plugins/releases/latest/download/count_vowels.wasm"
+
 -- Prints: {"count":3,"total":3,"vowels":"aeiouAEIOU"}"
 ```
 
@@ -116,13 +118,14 @@ hello currPlugin msg = do
 
 main = do
   setLogFile "stdout" LogError
-  let m = manifest [wasmFile "wasm/code-functions.wasm"]
   f <- hostFunction "hello_world" [ptr] [ptr] hello "Hello, again"
   plugin <- unwrap <$> newPlugin m [f] True
   id <- pluginID plugin
   print id
   JSON res <- (unwrap <$> call plugin "count_vowels" "this is a test" :: IO (JSON Count))
   print res
+  where
+    m = manifest [wasmFile "wasm/code-functions.wasm"]
 -- Prints: Count {count = 999}
 ```
 

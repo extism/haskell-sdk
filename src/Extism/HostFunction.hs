@@ -168,21 +168,23 @@ getParams (CurrentPlugin _ params _ _) = params
 
 output :: (ToBytes a) => CurrentPlugin -> Int -> a -> IO ()
 output !p !index !x =
-  let CurrentPlugin _ _ !res !len = p
-   in do
-        mem <- alloc p x
-        if index >= len
-          then return ()
-          else pokeElemOff res index (toI64 mem)
+  do
+    mem <- alloc p x
+    if index >= len
+      then return ()
+      else pokeElemOff res index (toI64 mem)
+  where
+    CurrentPlugin _ _ !res !len = p
 
 input :: (FromBytes a) => CurrentPlugin -> Int -> IO (Result a)
 input plugin index =
-  let (CurrentPlugin _ params _ _) = plugin
-   in let x = fromI64 (params !! index) :: Maybe Word64
-       in case x of
-            Nothing -> return $ Left (ExtismError "invalid parameter")
-            Just offs -> do
-              memoryGet plugin (MemoryHandle offs)
+  case x of
+    Nothing -> return $ Left (ExtismError "invalid parameter")
+    Just offs -> do
+      memoryGet plugin (MemoryHandle offs)
+  where
+    (CurrentPlugin _ params _ _) = plugin
+    x = fromI64 (params !! index) :: Maybe Word64
 
 callback :: (CurrentPlugin -> a -> IO ()) -> (Ptr ExtismCurrentPlugin -> Ptr Val -> Word64 -> Ptr Val -> Word64 -> Ptr () -> IO ())
 callback f plugin params nparams results nresults ptr = do
@@ -191,34 +193,25 @@ callback f plugin params nparams results nresults ptr = do
   f (CurrentPlugin plugin p results (fromIntegral nresults)) userData
 
 hostFunctionWithNamespace' ns name params results f v =
-  let nparams = fromIntegral $ length params
-   in let nresults = fromIntegral $ length results
-       in do
-            let g = callback f
-            cb <- callbackWrap g
-            free <- freePtrWrap freePtr
-            userData <- newStablePtr (v, free, cb, g)
-            let userDataPtr = castStablePtrToPtr userData
-            x <-
-              withCString
-                name
-                ( \name' ->
-                    withArray
-                      params
-                      ( \params' ->
-                          withArray
-                            results
-                            ( \results' ->
-                                extism_function_new name' params' nparams results' nresults cb userDataPtr free
-                            )
-                      )
-                )
-            let freeFn = extism_function_free x
-            case ns of
-              Nothing -> return ()
-              Just ns -> withCString ns (extism_function_set_namespace x)
-            fptr <- Foreign.Concurrent.newForeignPtr x freeFn
-            return $ Function fptr (castPtrToStablePtr userDataPtr)
+  do
+    let g = callback f
+    cb <- callbackWrap g
+    free <- freePtrWrap freePtr
+    userData <- newStablePtr (v, free, cb, g)
+    let userDataPtr = castStablePtrToPtr userData
+    x <- withCString name $ \name' ->
+      withArray params $ \params' ->
+        withArray results $ \results' ->
+          extism_function_new name' params' nparams results' nresults cb userDataPtr free
+    let freeFn = extism_function_free x
+    case ns of
+      Nothing -> return ()
+      Just ns -> withCString ns (extism_function_set_namespace x)
+    fptr <- Foreign.Concurrent.newForeignPtr x freeFn
+    return $ Function fptr (castPtrToStablePtr userDataPtr)
+  where
+    nparams = fromIntegral $ length params
+    nresults = fromIntegral $ length results
 
 -- | 'hostFunction "function_name" inputTypes outputTypes callback userData' creates a new
 -- | 'Function' in the default namespace that can be called from a 'Plugin'

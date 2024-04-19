@@ -48,11 +48,11 @@ instance JSON HTTPRequest where
   showJSON req = object $ requestObj req
   readJSON x =
     let url = x .? "url"
-     in let headers = x .? "headers"
-         in let method = x .? "method"
-             in case url of
-                  Null -> Error "Missing 'url' field"
-                  NotNull url -> Ok (HTTPRequest url headers method)
+        headers = x .? "headers"
+        method = x .? "method"
+     in case url of
+          Null -> Error "Missing 'url' field"
+          NotNull url -> Ok (HTTPRequest url headers method)
 
 -- | WASM from file
 data WasmFile = WasmFile
@@ -71,11 +71,11 @@ instance JSON WasmFile where
       ]
   readJSON x =
     let path = x .? "url"
-     in let name = x .? "name"
-         in let hash = x .? "hash"
-             in case path of
-                  Null -> Error "Missing 'path' field"
-                  NotNull path -> Ok (WasmFile path name hash)
+        name = x .? "name"
+        hash = x .? "hash"
+     in case path of
+          Null -> Error "Missing 'path' field"
+          NotNull path -> Ok (WasmFile path name hash)
 
 -- | WASM from raw bytes
 data WasmData = WasmData
@@ -94,14 +94,14 @@ instance JSON WasmData where
       ]
   readJSON x =
     let d = x .? "data"
-     in let name = x .? "name"
-         in let hash = x .? "hash"
-             in case d of
-                  Null -> Error "Missing 'path' field"
-                  NotNull d ->
-                    case readJSON d of
-                      Error msg -> Error msg
-                      Ok d' -> Ok (WasmData d' name hash)
+        name = x .? "name"
+        hash = x .? "hash"
+     in case d of
+          Null -> Error "Missing 'path' field"
+          NotNull d ->
+            case readJSON d of
+              Error msg -> Error msg
+              Ok d' -> Ok (WasmData d' name hash)
 
 -- | WASM from a URL
 data WasmURL = WasmURL
@@ -120,11 +120,11 @@ instance JSON WasmURL where
       )
   readJSON x =
     let req = x .? "req"
-     in let name = x .? "name"
-         in let hash = x .? "hash"
-             in case fromNullable req of
-                  Nothing -> Error "Missing 'req' field"
-                  Just req -> Ok (WasmURL req name hash)
+        name = x .? "name"
+        hash = x .? "hash"
+     in case fromNullable req of
+          Nothing -> Error "Missing 'req' field"
+          Just req -> Ok (WasmURL req name hash)
 
 -- | Specifies where to get WASM module data
 data Wasm = File WasmFile | Data WasmData | URL WasmURL deriving (Eq, Show)
@@ -136,18 +136,19 @@ instance JSON Wasm where
       Data d -> showJSON d
       URL u -> showJSON u
   readJSON x =
-    let file = (readJSON x :: Result WasmFile)
-     in case file of
-          Ok x -> Ok (File x)
-          Error _ ->
-            let data' = (readJSON x :: Result WasmData)
-             in case data' of
-                  Ok x -> Ok (Data x)
-                  Error _ ->
-                    let url = (readJSON x :: Result WasmURL)
-                     in case url of
-                          Ok x -> Ok (URL x)
-                          Error _ -> Error "JSON does not match any of the Wasm types"
+    case file of
+      Ok x -> Ok (File x)
+      Error _ ->
+        let data' = (readJSON x :: Result WasmData)
+         in case data' of
+              Ok x -> Ok (Data x)
+              Error _ ->
+                let url = (readJSON x :: Result WasmURL)
+                 in case url of
+                      Ok x -> Ok (URL x)
+                      Error _ -> Error "JSON does not match any of the Wasm types"
+    where
+      file = (readJSON x :: Result WasmFile)
 
 wasmFile :: String -> Wasm
 wasmFile path =
@@ -197,14 +198,14 @@ instance JSON Manifest where
           ]
   readJSON x =
     let wasm = x .? "wasm"
-     in let memory = x .? "memory"
-         in let config = x .? "config"
-             in let hosts = x .? "allowed_hosts"
-                 in let paths = x .? "allowed_paths"
-                     in let timeout = x .? "timeout_ms"
-                         in case fromNullable wasm of
-                              Nothing -> Error "Missing 'wasm' field"
-                              Just wasm -> Ok (Manifest wasm memory config hosts paths timeout)
+        memory = x .? "memory"
+        config = x .? "config"
+        hosts = x .? "allowed_hosts"
+        paths = x .? "allowed_paths"
+        timeout = x .? "timeout_ms"
+     in case fromNullable wasm of
+          Nothing -> Error "Missing 'wasm' field"
+          Just wasm -> Ok (Manifest wasm memory config hosts paths timeout)
 
 -- | Create a new 'Manifest' from a list of 'Wasm'
 manifest :: [Wasm] -> Manifest

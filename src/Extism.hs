@@ -82,36 +82,33 @@ instance PluginInput Manifest where
 -- | Create a 'Plugin' from a WASM module, `useWasi` determines if WASI should
 -- | be linked
 newPlugin :: (PluginInput a) => a -> [Function] -> Bool -> IO (Result Plugin)
-newPlugin input functions useWasi =
-  let wasm = pluginInput input
-   in let nfunctions = fromIntegral (length functions)
-       in let length' = fromIntegral (B.length wasm)
-           in let wasi = fromInteger (if useWasi then 1 else 0)
-               in do
-                    funcs <- mapM (\(Function ptr _) -> withForeignPtr ptr return) functions
-                    alloca
-                      ( \e -> do
-                          let errmsg = (e :: Ptr CString)
-                          p <-
-                            unsafeUseAsCString
-                              wasm
-                              ( \s ->
-                                  withArray
-                                    funcs
-                                    ( \funcs ->
-                                        extism_plugin_new (castPtr s) length' funcs nfunctions wasi errmsg
-                                    )
-                              )
-                          if p == nullPtr
-                            then do
-                              err <- peek errmsg
-                              e <- peekCString err
-                              extism_plugin_new_error_free err
-                              return $ Left (ExtismError e)
-                            else do
-                              ptr <- Foreign.Concurrent.newForeignPtr p (extism_plugin_free p)
-                              return $ Right (Plugin ptr)
-                      )
+newPlugin input functions useWasi = do
+  funcs <- mapM (\(Function ptr _) -> withForeignPtr ptr return) functions
+  alloca $ \e -> do
+    let errmsg = (e :: Ptr CString)
+    p <- unsafeUseAsCString wasm $ \s ->
+      withArray funcs $ \funcs ->
+        extism_plugin_new (castPtr s) length' funcs nfunctions wasi errmsg
+
+    if p == nullPtr
+      then do
+        err <- peek errmsg
+        e <- peekCString err
+        extism_plugin_new_error_free err
+        return $ Left (ExtismError e)
+      else do
+        ptr <- Foreign.Concurrent.newForeignPtr p (extism_plugin_free p)
+        return $ Right (Plugin ptr)
+  where
+    wasm = pluginInput input
+    nfunctions = fromIntegral (length functions)
+    length' = fromIntegral (B.length wasm)
+    wasi = fromInteger (if useWasi then 1 else 0)
+
+-- | Same as `newPlugin` but converts the error case to an exception
+newPlugin' :: (PluginInput a) => a -> [Function] -> Bool -> IO Plugin
+newPlugin' input functions useWasi = do
+  unwrap <$> newPlugin input functions useWasi
 
 -- | Check if a 'Plugin' is valid
 isValid :: Plugin -> IO Bool
@@ -120,19 +117,14 @@ isValid (Plugin p) = withForeignPtr p (\x -> return (x /= nullPtr))
 -- | Set configuration values for a plugin
 setConfig :: Plugin -> [(String, Maybe String)] -> IO Bool
 setConfig (Plugin plugin) x =
-  let obj = Text.JSON.toJSObject [(k, Text.JSON.showJSON v) | (k, v) <- x]
-   in let bs = toByteString (Text.JSON.encode obj)
-       in let length' = fromIntegral (B.length bs)
-           in unsafeUseAsCString
-                bs
-                ( \s ->
-                    withForeignPtr
-                      plugin
-                      ( \plugin' -> do
-                          b <- extism_plugin_config plugin' (castPtr s) length'
-                          return $ b /= 0
-                      )
-                )
+  unsafeUseAsCString bs $ \s ->
+    withForeignPtr plugin $ \plugin' -> do
+      b <- extism_plugin_config plugin' (castPtr s) length'
+      return $ b /= 0
+  where
+    obj = Text.JSON.toJSObject [(k, Text.JSON.showJSON v) | (k, v) <- x]
+    bs = toByteString (Text.JSON.encode obj)
+    length' = fromIntegral (B.length bs)
 
 levelStr LogError = "error"
 levelStr LogDebug = "debug"
@@ -143,60 +135,47 @@ levelStr LogInfo = "info"
 -- | Set the log file and level, this is a global configuration
 setLogFile :: String -> LogLevel -> IO Bool
 setLogFile filename level =
-  let s = levelStr level
-   in withCString
-        filename
-        ( \f ->
-            withCString
-              s
-              ( \l -> do
-                  b <- extism_log_file f l
-                  return $ b /= 0
-              )
-        )
+  withCString filename $ \f ->
+    withCString s $ \l -> do
+      b <- extism_log_file f l
+      return $ b /= 0
+  where
+    s = levelStr level
 
 -- | Check if a function exists in the given plugin
 functionExists :: Plugin -> String -> IO Bool
 functionExists (Plugin plugin) name =
-  withForeignPtr
-    plugin
-    ( \plugin' -> do
-        b <- withCString name (extism_plugin_function_exists plugin')
-        if b == 1 then return True else return False
-    )
+  withForeignPtr plugin $ \plugin' -> do
+    b <- withCString name (extism_plugin_function_exists plugin')
+    if b == 1 then return True else return False
 
 --- | Call a function provided by the given plugin
 call :: (ToBytes a, FromBytes b) => Plugin -> String -> a -> IO (Result b)
 call (Plugin plugin) name inp =
-  let input = toBytes inp
-   in let length' = fromIntegral (B.length input)
-       in withForeignPtr
-            plugin
-            ( \plugin' -> do
-                rc <-
-                  withCString
-                    name
-                    ( \name' ->
-                        unsafeUseAsCString
-                          input
-                          ( \input' ->
-                              extism_plugin_call plugin' name' (castPtr input') length'
-                          )
-                    )
-                err <- extism_error plugin'
-                if err /= nullPtr
-                  then do
-                    e <- peekCString err
-                    return $ Left (ExtismError e)
-                  else
-                    if rc == 0
-                      then do
-                        len <- extism_plugin_output_length plugin'
-                        Ptr ptr <- extism_plugin_output_data plugin'
-                        x <- unsafePackLenAddress (fromIntegral len) ptr
-                        return $ fromBytes x
-                      else return $ Left (ExtismError "Call failed")
-            )
+  withForeignPtr plugin $ \plugin' -> do
+    rc <- withCString name $ \name' ->
+      unsafeUseAsCString input $ \input' ->
+        extism_plugin_call plugin' name' (castPtr input') length'
+    err <- extism_error plugin'
+    if err /= nullPtr
+      then do
+        e <- peekCString err
+        return $ Left (ExtismError e)
+      else
+        if rc == 0
+          then do
+            len <- extism_plugin_output_length plugin'
+            Ptr ptr <- extism_plugin_output_data plugin'
+            x <- unsafePackLenAddress (fromIntegral len) ptr
+            return $ fromBytes x
+          else return $ Left (ExtismError "Call failed")
+  where
+    input = toBytes inp
+    length' = fromIntegral (B.length input)
+
+call' :: (ToBytes a, FromBytes b) => Plugin -> String -> a -> IO b
+call' plugin name inp = do
+  unwrap <$> call plugin name inp
 
 -- | Create a new 'CancelHandle' that can be used to cancel a running plugin
 -- | from another thread.
@@ -212,15 +191,12 @@ cancel (CancelHandle handle) =
 
 pluginID :: Plugin -> IO Data.UUID.UUID
 pluginID (Plugin plugin) =
-  withForeignPtr
-    plugin
-    ( \plugin' -> do
-        ptr <- extism_plugin_id plugin'
-        buf <- B.packCStringLen (castPtr ptr, 16)
-        case Data.UUID.fromByteString (BL.fromStrict buf) of
-          Nothing -> error "Invalid Plugin ID"
-          Just x -> return x
-    )
+  withForeignPtr plugin $ \plugin' -> do
+    ptr <- extism_plugin_id plugin'
+    buf <- B.packCStringLen (castPtr ptr, 16)
+    case Data.UUID.fromByteString (BL.fromStrict buf) of
+      Nothing -> error "Invalid Plugin ID"
+      Just x -> return x
 
 reset :: Plugin -> IO ()
 reset (Plugin plugin) =

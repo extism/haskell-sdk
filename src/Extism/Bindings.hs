@@ -90,49 +90,93 @@ instance Storable ValType where
   poke ptr x =
     pokeByteOff ptr 0 (intOfValType x)
 
-foreign import ccall safe "extism.h extism_plugin_new" extism_plugin_new :: Ptr Word8 -> Word64 -> Ptr (Ptr ExtismFunction) -> Word64 -> CBool -> Ptr CString -> IO (Ptr ExtismPlugin)
+foreign import ccall safe "extism.h extism_plugin_new"
+  extism_plugin_new ::
+    Ptr Word8 -> Word64 -> Ptr (Ptr ExtismFunction) -> Word64 -> CBool -> Ptr CString -> IO (Ptr ExtismPlugin)
 
-foreign import ccall safe "extism.h extism_plugin_call" extism_plugin_call :: Ptr ExtismPlugin -> CString -> Ptr Word8 -> Word64 -> IO Int32
+foreign import ccall safe "extism.h extism_plugin_call"
+  extism_plugin_call ::
+    Ptr ExtismPlugin -> CString -> Ptr Word8 -> Word64 -> IO Int32
 
-foreign import ccall safe "extism.h extism_plugin_function_exists" extism_plugin_function_exists :: Ptr ExtismPlugin -> CString -> IO CBool
+foreign import ccall safe "extism.h extism_plugin_function_exists"
+  extism_plugin_function_exists ::
+    Ptr ExtismPlugin -> CString -> IO CBool
 
-foreign import ccall safe "extism.h extism_plugin_error" extism_error :: Ptr ExtismPlugin -> IO CString
+foreign import ccall safe "extism.h extism_plugin_error"
+  extism_error ::
+    Ptr ExtismPlugin -> IO CString
 
-foreign import ccall safe "extism.h extism_plugin_output_length" extism_plugin_output_length :: Ptr ExtismPlugin -> IO Word64
+foreign import ccall safe "extism.h extism_plugin_output_length"
+  extism_plugin_output_length ::
+    Ptr ExtismPlugin -> IO Word64
 
-foreign import ccall safe "extism.h extism_plugin_output_data" extism_plugin_output_data :: Ptr ExtismPlugin -> IO (Ptr Word8)
+foreign import ccall safe "extism.h extism_plugin_output_data"
+  extism_plugin_output_data ::
+    Ptr ExtismPlugin -> IO (Ptr Word8)
 
-foreign import ccall safe "extism.h extism_log_file" extism_log_file :: CString -> CString -> IO CBool
+foreign import ccall safe "extism.h extism_log_file"
+  extism_log_file ::
+    CString -> CString -> IO CBool
 
-foreign import ccall safe "extism.h extism_plugin_config" extism_plugin_config :: Ptr ExtismPlugin -> Ptr Word8 -> Int64 -> IO CBool
+foreign import ccall safe "extism.h extism_plugin_config"
+  extism_plugin_config ::
+    Ptr ExtismPlugin -> Ptr Word8 -> Int64 -> IO CBool
 
-foreign import ccall safe "extism.h extism_plugin_free" extism_plugin_free :: Ptr ExtismPlugin -> IO ()
+foreign import ccall safe "extism.h extism_plugin_free"
+  extism_plugin_free ::
+    Ptr ExtismPlugin -> IO ()
 
-foreign import ccall safe "extism.h extism_plugin_reset" extism_plugin_reset :: Ptr ExtismPlugin -> IO ()
+foreign import ccall safe "extism.h extism_plugin_reset"
+  extism_plugin_reset ::
+    Ptr ExtismPlugin -> IO ()
 
-foreign import ccall safe "extism.h extism_plugin_new_error_free" extism_plugin_new_error_free :: CString -> IO ()
+foreign import ccall safe "extism.h extism_plugin_new_error_free"
+  extism_plugin_new_error_free ::
+    CString -> IO ()
 
-foreign import ccall safe "extism.h extism_version" extism_version :: IO CString
+foreign import ccall safe "extism.h extism_version"
+  extism_version ::
+    IO CString
 
-foreign import ccall safe "extism.h extism_plugin_id" extism_plugin_id :: Ptr ExtismPlugin -> IO (Ptr Word8)
+foreign import ccall safe "extism.h extism_plugin_id"
+  extism_plugin_id ::
+    Ptr ExtismPlugin -> IO (Ptr Word8)
 
-foreign import ccall safe "extism.h extism_plugin_cancel_handle" extism_plugin_cancel_handle :: Ptr ExtismPlugin -> IO (Ptr ExtismCancelHandle)
+foreign import ccall safe "extism.h extism_plugin_cancel_handle"
+  extism_plugin_cancel_handle ::
+    Ptr ExtismPlugin -> IO (Ptr ExtismCancelHandle)
 
-foreign import ccall safe "extism.h extism_plugin_cancel" extism_plugin_cancel :: Ptr ExtismCancelHandle -> IO Bool
+foreign import ccall safe "extism.h extism_plugin_cancel"
+  extism_plugin_cancel ::
+    Ptr ExtismCancelHandle -> IO Bool
 
-foreign import ccall safe "extism.h extism_function_new" extism_function_new :: CString -> Ptr ValType -> Word64 -> Ptr ValType -> Word64 -> FunPtr CCallback -> Ptr () -> FunPtr FreeCallback -> IO (Ptr ExtismFunction)
+foreign import ccall safe "extism.h extism_function_new"
+  extism_function_new ::
+    CString -> Ptr ValType -> Word64 -> Ptr ValType -> Word64 -> FunPtr CCallback -> Ptr () -> FunPtr FreeCallback -> IO (Ptr ExtismFunction)
 
-foreign import ccall safe "extism.h extism_function_free" extism_function_free :: Ptr ExtismFunction -> IO ()
+foreign import ccall safe "extism.h extism_function_free"
+  extism_function_free ::
+    Ptr ExtismFunction -> IO ()
 
-foreign import ccall safe "extism.h extism_function_set_namespace" extism_function_set_namespace :: Ptr ExtismFunction -> CString -> IO ()
+foreign import ccall safe "extism.h extism_function_set_namespace"
+  extism_function_set_namespace ::
+    Ptr ExtismFunction -> CString -> IO ()
 
-foreign import ccall safe "extism.h extism_current_plugin_memory" extism_current_plugin_memory :: Ptr ExtismCurrentPlugin -> IO (Ptr Word8)
+foreign import ccall safe "extism.h extism_current_plugin_memory"
+  extism_current_plugin_memory ::
+    Ptr ExtismCurrentPlugin -> IO (Ptr Word8)
 
-foreign import ccall safe "extism.h extism_current_plugin_memory_alloc" extism_current_plugin_memory_alloc :: Ptr ExtismCurrentPlugin -> Word64 -> IO Word64
+foreign import ccall safe "extism.h extism_current_plugin_memory_alloc"
+  extism_current_plugin_memory_alloc ::
+    Ptr ExtismCurrentPlugin -> Word64 -> IO Word64
 
-foreign import ccall safe "extism.h extism_current_plugin_memory_length" extism_current_plugin_memory_length :: Ptr ExtismCurrentPlugin -> Word64 -> IO Word64
+foreign import ccall safe "extism.h extism_current_plugin_memory_length"
+  extism_current_plugin_memory_length ::
+    Ptr ExtismCurrentPlugin -> Word64 -> IO Word64
 
-foreign import ccall safe "extism.h extism_current_plugin_memory_free" extism_current_plugin_memory_free :: Ptr ExtismCurrentPlugin -> Word64 -> IO ()
+foreign import ccall safe "extism.h extism_current_plugin_memory_free"
+  extism_current_plugin_memory_free ::
+    Ptr ExtismCurrentPlugin -> Word64 -> IO ()
 
 freePtr ptr = do
   let s = castPtrToStablePtr ptr

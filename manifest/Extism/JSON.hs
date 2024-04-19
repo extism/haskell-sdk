@@ -68,7 +68,8 @@ newtype Base64 = Base64 B.ByteString deriving (Eq, Show)
 instance JSON Base64 where
   showJSON (Base64 bs) = showJSON (BS.unpack $ B64.encode bs)
   readJSON (JSString s) =
-    let toByteString x = B.pack (Prelude.map c2w x)
-     in case B64.decode (toByteString (fromJSString s)) of
-          Left msg -> Error msg
-          Right d -> Ok (Base64 d)
+    case B64.decode (toByteString (fromJSString s)) of
+      Left msg -> Error msg
+      Right d -> Ok (Base64 d)
+    where
+      toByteString x = B.pack (Prelude.map c2w x)

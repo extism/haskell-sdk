@@ -7,6 +7,7 @@ module Extism.HostFunction
     ValType (..),
     Val (..),
     MemoryHandle,
+    Function,
     memoryAlloc,
     memoryLength,
     memoryFree,
@@ -101,6 +102,12 @@ memoryGet plugin offs = do
   x <- memoryBytes plugin offs
   return $ fromBytes x
 
+-- | Access the data associated with a handle and convert it into a Haskell type
+memoryGet' :: (FromBytes a) => CurrentPlugin -> MemoryHandle -> IO a
+memoryGet' plugin offs = do
+  x <- memoryBytes plugin offs
+  return $ unwrap $ fromBytes x
+
 -- | Allocate memory and copy an existing 'ByteString' into it
 allocBytes :: CurrentPlugin -> B.ByteString -> IO MemoryHandle
 allocBytes plugin s = do
@@ -185,6 +192,10 @@ input plugin index =
   where
     (CurrentPlugin _ params _ _) = plugin
     x = fromI64 (params !! index) :: Maybe Word64
+
+input' :: (FromBytes a) => CurrentPlugin -> Int -> IO a
+input' plugin index =
+  unwrap <$> input plugin index
 
 callback :: (CurrentPlugin -> a -> IO ()) -> (Ptr ExtismCurrentPlugin -> Ptr Val -> Word64 -> Ptr Val -> Word64 -> Ptr () -> IO ())
 callback f plugin params nparams results nresults ptr = do

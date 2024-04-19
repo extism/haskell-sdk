@@ -13,7 +13,7 @@ hello currPlugin msg = do
   putStrLn . unwrap <$> input currPlugin 0
   putStrLn "Hello from Haskell!"
   putStrLn msg
-  output currPlugin 0 (JSON $ Count 999)
+  output currPlugin 0 $ JSON $ Count 999
 
 main = do
   setLogFile "stdout" LogError

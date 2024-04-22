@@ -1,5 +1,9 @@
 # Revision history for extism
 
+## 1.2.1.0 -- 2024-04-22
+
+* Added `newFunction`
+
 ## 1.0.0.0 -- 2024-01-08
 
 * Extism 1.0 compatible release

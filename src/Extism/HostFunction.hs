@@ -29,6 +29,8 @@ module Extism.HostFunction
     fromF64,
     hostFunction,
     hostFunction',
+    newFunction,
+    newFunction',
     input,
     output,
     getParams,
@@ -233,3 +235,13 @@ hostFunction = hostFunctionWithNamespace' Nothing
 -- | 'Function' in the provided namespace that can be called from a 'Plugin'
 hostFunction' :: String -> String -> [ValType] -> [ValType] -> (CurrentPlugin -> a -> IO ()) -> a -> IO Function
 hostFunction' ns = hostFunctionWithNamespace' (Just ns)
+
+-- | 'newFunction "function_name" inputTypes outputTypes callback userData' creates a new
+-- | 'Function' in the default namespace that can be called from a 'Plugin'
+newFunction :: String -> [ValType] -> [ValType] -> a -> (CurrentPlugin -> a -> IO ()) -> IO Function
+newFunction name params results x f = hostFunctionWithNamespace' Nothing name params results f x
+
+-- | 'newFunction' "namespace" "function_name" inputTypes outputTypes callback userData' creates a new
+-- | 'Function' in the provided namespace that can be called from a 'Plugin'
+newFunction' :: String -> String -> [ValType] -> [ValType] -> a -> (CurrentPlugin -> a -> IO ()) -> IO Function
+newFunction' ns name params results x f = hostFunctionWithNamespace' (Just ns) name params results f x

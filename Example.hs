@@ -18,7 +18,7 @@ hello currPlugin msg = do
 main = do
   setLogFile "stdout" LogError
   let m = manifest [wasmFile "wasm/code-functions.wasm"]
-  f <- hostFunction "hello_world" [ptr] [ptr] hello "Hello, again"
+  f <- newFunction "hello_world" [ptr] [ptr] "Hello, again" hello
   plugin <- unwrap <$> newPlugin m [f] True
   id <- pluginID plugin
   print id

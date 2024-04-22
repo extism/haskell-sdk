@@ -29,6 +29,8 @@ module Extism.HostFunction
     fromF64,
     hostFunction,
     hostFunction',
+    newFunction,
+    newFunction',
     input,
     output,
     getParams,

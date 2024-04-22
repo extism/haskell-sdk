@@ -108,7 +108,7 @@ import Extism.HostFunction
 import Extism.JSON
 import Extism.Manifest (manifest, wasmFile)
 
-newtype Count = Count {count :: Int} deriving (Data, Typeable, Show)
+newtype Count = Count {count :: Int} deriving (Data, Show)
 
 hello currPlugin msg = do
   putStrLn . unwrap <$> input currPlugin 0

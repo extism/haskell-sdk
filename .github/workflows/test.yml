@@ -23,6 +23,8 @@ jobs:
           enable-stack: false
       - name: 'Set up HLint'
         uses: haskell-actions/hlint-setup@v2
+        if: matrix.os == 'ubuntu-latest'
+
       - name: Build Haskell Host SDK
         run: |
           uname -a
@@ -31,15 +33,17 @@ jobs:
 
       - name: Test Haskell SDK
         run: |
-          LD_LIBRARY_PATH=/usr/local/lib cabal test
+          DYLD_LIBRARY_PATH=/usr/local/lib LD_LIBRARY_PATH=/usr/local/lib cabal test
 
       - name: 'Run HLint'
+        if: matrix.os == 'ubuntu-latest'
         uses: haskell-actions/hlint-run@v2
         with:
             path: src/
             fail-on: warning
 
       - name: 'Run HLint'
+        if: matrix.os == 'ubuntu-latest'
         uses: haskell-actions/hlint-run@v2
         with:
             path: manifest/

@@ -148,7 +148,7 @@ instance JSON Wasm where
                       Ok x -> Ok (URL x)
                       Error _ -> Error "JSON does not match any of the Wasm types"
     where
-      file = (readJSON x :: Result WasmFile)
+      file = readJSON x :: Result WasmFile
 
 wasmFile :: String -> Wasm
 wasmFile path =

@@ -32,6 +32,8 @@ test-suite extism-example
     type:             exitcode-stdio-1.0
     main-is:          Example.hs
     default-language: Haskell2010
+    extra-libraries:    extism
+    extra-lib-dirs:     /usr/local/lib
     build-depends:
         base,
         extism,
@@ -42,6 +44,8 @@ test-suite extism-test
     main-is:          Test.hs
     hs-source-dirs:   test
     default-language: Haskell2010
+    extra-libraries:    extism
+    extra-lib-dirs:     /usr/local/lib
     build-depends:
         base,
         extism,

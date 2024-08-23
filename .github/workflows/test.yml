@@ -29,7 +29,7 @@ jobs:
         run: |
           uname -a
           cabal update
-          cabal build
+          LD_LIBRARY_PATH=/usr/local/lib cabal build
 
       - name: Test Haskell SDK
         run: |

@@ -33,7 +33,7 @@ jobs:
 
       - name: Test Haskell SDK
         run: |
-          LD_LIBRARY_PATH=/usr/local/lib cabal test
+          DYLD_LIBRARY_PATH=/usr/local/lib LD_LIBRARY_PATH=/usr/local/lib cabal test
 
       - name: 'Run HLint'
         if: matrix.os == 'ubuntu-latest'

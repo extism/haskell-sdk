@@ -1,5 +1,8 @@
+{-# LANGUAGE DeriveDataTypeable #-}
+
 import Extism
 import Extism.HostFunction
+import Extism.JSON
 import Extism.Manifest
 import Test.HUnit
 
@@ -7,9 +10,9 @@ assertUnwrap (Right x) = return x
 assertUnwrap (Left (ExtismError msg)) =
   assertFailure msg
 
-defaultManifest = manifest [wasmFile "../wasm/code.wasm"]
+defaultManifest = manifest [wasmFile "wasm/code.wasm"]
 
-hostFunctionManifest = manifest [wasmFile "../wasm/code-functions.wasm"]
+hostFunctionManifest = manifest [wasmFile "wasm/code-functions.wasm"]
 
 initPlugin :: IO Plugin
 initPlugin =
@@ -24,22 +27,25 @@ pluginFunctionExists = do
 
 checkCallResult p = do
   res <- call p "count_vowels" "this is a test" >>= assertUnwrap
-  assertEqual "count vowels output" "{\"count\": 4}" res
+  assertEqual "count vowels output" "{\"count\":4,\"total\":4,\"vowels\":\"aeiouAEIOU\"}" res
 
 pluginCall = do
   p <- initPlugin
   checkCallResult p
 
-hello plugin () = do
-  s <- unwrap <$> input plugin 0
-  assertEqual "host function input" "{\"count\": 4}" s
+newtype Count = Count {count :: Int} deriving (Data, Show)
+
+hello currPlugin msg = do
+  putStrLn . unwrap <$> input currPlugin 0
   putStrLn "Hello from Haskell!"
-  output plugin 0 "{\"count\": 999}"
+  putStrLn msg
+  output currPlugin 0 $ JSON $ Count 999
 
 pluginCallHostFunction = do
-  p <- Extism.newPlugin hostFunctionManifest [] False >>= assertUnwrap
+  f <- newFunction "hello_world" [ptr] [ptr] "Hello, again" hello
+  p <- Extism.newPlugin hostFunctionManifest [f] True >>= assertUnwrap
   res <- call p "count_vowels" "this is a test" >>= assertUnwrap
-  assertEqual "count vowels output" "{\"count\": 999}" res
+  assertEqual "count vowels output" "{\"count\":999}" res
 
 pluginMultiple = do
   p <- initPlugin
@@ -58,6 +64,11 @@ testSetLogFile = do
   b <- setLogFile "stderr" Extism.LogError
   assertBool "set log file" b
 
+testCompiledPlugin = do
+  c <- Extism.newCompiledPlugin defaultManifest [] False >>= assertUnwrap
+  p <- Extism.newPluginFromCompiled c >>= assertUnwrap
+  checkCallResult p
+
 t name f = TestLabel name (TestCase f)
 
 main = do
@@ -68,6 +79,7 @@ main = do
           t "Plugin.CallHostFunction" pluginCallHostFunction,
           t "Plugin.Multiple" pluginMultiple,
           t "Plugin.Config" pluginConfig,
-          t "SetLogFile" testSetLogFile
+          t "SetLogFile" testSetLogFile,
+          t "CompiledPlugin" testCompiledPlugin
         ]
     )

@@ -13,6 +13,8 @@ module Extism
     Result (..),
     extismVersion,
     newPlugin,
+    newCompiledPlugin,
+    newPluginFromCompiled,
     isValid,
     setConfig,
     setLogFile,
@@ -39,6 +41,7 @@ import qualified Data.UUID (UUID, fromByteString, toString)
 import Data.Word
 import Extism.Bindings
 import Extism.Encoding
+import Extism.JSON
 import Extism.Manifest (Manifest)
 import Foreign.C.String
 import Foreign.Concurrent
@@ -49,13 +52,16 @@ import Foreign.Ptr
 import Foreign.StablePtr
 import Foreign.Storable
 import GHC.Ptr
-import qualified Text.JSON (Result (..), decode, encode, showJSON, toJSObject)
+import qualified Text.JSON (JSValue (JSNull, JSString), Result (..), decode, encode, toJSObject, toJSString)
 
 -- | Host function, see 'Extism.HostFunction.hostFunction'
 data Function = Function (ForeignPtr ExtismFunction) (StablePtr ()) deriving (Eq)
 
 -- | Plugins can be used to call WASM function
 newtype Plugin = Plugin (ForeignPtr ExtismPlugin) deriving (Eq, Show)
+
+-- | CompiledPlugins can be used to create multiple plugin instances from a single pre-compiled plugin
+newtype CompiledPlugin = CompiledPlugin (ForeignPtr ExtismCompiledPlugin) deriving (Eq, Show)
 
 -- | Cancellation handle for Plugins
 newtype CancelHandle = CancelHandle (Ptr ExtismCancelHandle) deriving (Eq, Show)
@@ -105,10 +111,58 @@ newPlugin input functions useWasi = do
     length' = fromIntegral (B.length wasm)
     wasi = fromInteger (if useWasi then 1 else 0)
 
+-- | Create a 'Plugin' from a WASM module, `useWasi` determines if WASI should
+-- | be linked
+newCompiledPlugin :: (PluginInput a) => a -> [Function] -> Bool -> IO (Result CompiledPlugin)
+newCompiledPlugin input functions useWasi = do
+  funcs <- mapM (\(Function ptr _) -> withForeignPtr ptr return) functions
+  alloca $ \e -> do
+    let errmsg = (e :: Ptr CString)
+    p <- unsafeUseAsCString wasm $ \s ->
+      withArray funcs $ \funcs ->
+        extism_compiled_plugin_new (castPtr s) length' funcs nfunctions wasi errmsg
+
+    if p == nullPtr
+      then do
+        err <- peek errmsg
+        e <- peekCString err
+        extism_plugin_new_error_free err
+        return $ Left (ExtismError e)
+      else do
+        ptr <- Foreign.Concurrent.newForeignPtr p (extism_compiled_plugin_free p)
+        return $ Right (CompiledPlugin ptr)
+  where
+    wasm = pluginInput input
+    nfunctions = fromIntegral (length functions)
+    length' = fromIntegral (B.length wasm)
+    wasi = fromInteger (if useWasi then 1 else 0)
+
+-- | Create a new plugin from a `CompiledPlugin`
+newPluginFromCompiled :: CompiledPlugin -> IO (Result Plugin)
+newPluginFromCompiled (CompiledPlugin compiled) = do
+  alloca $ \e -> do
+    let errmsg = (e :: Ptr CString)
+    p <- withForeignPtr compiled $ \c ->
+      extism_plugin_new_from_compiled c errmsg
+    if p == nullPtr
+      then do
+        err <- peek errmsg
+        e <- peekCString err
+        extism_plugin_new_error_free err
+        return $ Left (ExtismError e)
+      else do
+        ptr <- Foreign.Concurrent.newForeignPtr p (extism_plugin_free p)
+        return $ Right (Plugin ptr)
+
 -- | Same as `newPlugin` but converts the error case to an exception
 newPlugin' :: (PluginInput a) => a -> [Function] -> Bool -> IO Plugin
 newPlugin' input functions useWasi = do
   unwrap <$> newPlugin input functions useWasi
+
+-- | Same as `newPluginFromCompiled` but converts the error case to an exception
+newPluginFromCompiled' :: CompiledPlugin -> IO Plugin
+newPluginFromCompiled' c =
+  unwrap <$> newPluginFromCompiled c
 
 -- | Check if a 'Plugin' is valid
 isValid :: Plugin -> IO Bool
@@ -120,9 +174,11 @@ setConfig (Plugin plugin) x =
   unsafeUseAsCString bs $ \s ->
     withForeignPtr plugin $ \plugin' -> do
       b <- extism_plugin_config plugin' (castPtr s) length'
+      print b
       return $ b /= 0
   where
-    obj = Text.JSON.toJSObject [(k, Text.JSON.showJSON v) | (k, v) <- x]
+    mk = maybe Text.JSON.JSNull (Text.JSON.JSString . Text.JSON.toJSString)
+    obj = Text.JSON.toJSObject [(k, mk v) | (k, v) <- x]
     bs = toByteString (Text.JSON.encode obj)
     length' = fromIntegral (B.length bs)
 

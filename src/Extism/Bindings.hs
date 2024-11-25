@@ -108,6 +108,10 @@ foreign import ccall safe "extism.h extism_plugin_call"
   extism_plugin_call ::
     Ptr ExtismPlugin -> CString -> Ptr Word8 -> Word64 -> IO Int32
 
+foreign import ccall safe "extism.h extism_plugin_call_with_host_context"
+  extism_plugin_call_with_host_context ::
+    Ptr ExtismPlugin -> CString -> Ptr Word8 -> Word64 -> Ptr () -> IO Int32
+
 foreign import ccall safe "extism.h extism_plugin_function_exists"
   extism_plugin_function_exists ::
     Ptr ExtismPlugin -> CString -> IO CBool
@@ -179,6 +183,10 @@ foreign import ccall safe "extism.h extism_function_set_namespace"
 foreign import ccall safe "extism.h extism_current_plugin_memory"
   extism_current_plugin_memory ::
     Ptr ExtismCurrentPlugin -> IO (Ptr Word8)
+
+foreign import ccall safe "extism.h extism_current_plugin_host_context"
+  extism_current_plugin_host_context ::
+    Ptr ExtismCurrentPlugin -> IO (Ptr ())
 
 foreign import ccall safe "extism.h extism_current_plugin_memory_alloc"
   extism_current_plugin_memory_alloc ::

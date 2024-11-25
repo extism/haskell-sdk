@@ -35,6 +35,7 @@ module Extism.HostFunction
     output,
     getParams,
     setResults,
+    hostContext,
     ptr,
   )
 where
@@ -198,6 +199,15 @@ input plugin index =
 input' :: (FromBytes a) => CurrentPlugin -> Int -> IO a
 input' plugin index =
   unwrap <$> input plugin index
+
+hostContext :: CurrentPlugin -> IO (Maybe a)
+hostContext (CurrentPlugin cp _ _ _) = do
+  ptr <- extism_current_plugin_host_context cp
+  if ptr == nullPtr
+    then return Nothing
+    else do
+      x <- deRefStablePtr (castPtrToStablePtr ptr)
+      return $ Just x
 
 callback :: (CurrentPlugin -> a -> IO ()) -> (Ptr ExtismCurrentPlugin -> Ptr Val -> Word64 -> Ptr Val -> Word64 -> Ptr () -> IO ())
 callback f plugin params nparams results nresults ptr = do

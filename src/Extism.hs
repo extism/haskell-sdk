@@ -20,6 +20,9 @@ module Extism
     setLogFile,
     functionExists,
     call,
+    call',
+    callWithHostContext,
+    callWithHostContext',
     cancelHandle,
     cancel,
     pluginID,
@@ -232,6 +235,37 @@ call (Plugin plugin) name inp =
 call' :: (ToBytes a, FromBytes b) => Plugin -> String -> a -> IO b
 call' plugin name inp = do
   unwrap <$> call plugin name inp
+
+--- | Call a function provided by the given plugin with a host context value
+callWithHostContext :: (ToBytes a, FromBytes b) => Plugin -> String -> a -> c -> IO (Result b)
+callWithHostContext (Plugin plugin) name inp ctx =
+  withForeignPtr plugin $ \plugin' -> do
+    sptr <- newStablePtr ctx
+    let ptr = castStablePtrToPtr sptr
+    rc <- withCString name $ \name' ->
+      unsafeUseAsCString input $ \input' ->
+        extism_plugin_call_with_host_context plugin' name' (castPtr input') length' ptr
+    freeStablePtr sptr
+    err <- extism_error plugin'
+    if err /= nullPtr
+      then do
+        e <- peekCString err
+        return $ Left (ExtismError e)
+      else
+        if rc == 0
+          then do
+            len <- extism_plugin_output_length plugin'
+            Ptr ptr <- extism_plugin_output_data plugin'
+            x <- unsafePackLenAddress (fromIntegral len) ptr
+            return $ fromBytes x
+          else return $ Left (ExtismError "Call failed")
+  where
+    input = toBytes inp
+    length' = fromIntegral (B.length input)
+
+callWithHostContext' :: (ToBytes a, FromBytes b) => Plugin -> String -> a -> c -> IO b
+callWithHostContext' plugin name inp ctx = do
+  unwrap <$> callWithHostContext plugin name inp ctx
 
 -- | Create a new 'CancelHandle' that can be used to cancel a running plugin
 -- | from another thread.

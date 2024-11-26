@@ -24,6 +24,8 @@ newtype ExtismCancelHandle = ExtismCancelHandle () deriving (Show)
 
 newtype ExtismCurrentPlugin = ExtismCurrentPlugin () deriving (Show)
 
+newtype ExtismCompiledPlugin = ExtismCompiledPlugin () deriving (Show)
+
 -- | Low-level Wasm types
 data ValType = I32 | I64 | F32 | F64 | V128 | FuncRef | ExternRef deriving (Show, Eq)
 
@@ -94,9 +96,21 @@ foreign import ccall safe "extism.h extism_plugin_new"
   extism_plugin_new ::
     Ptr Word8 -> Word64 -> Ptr (Ptr ExtismFunction) -> Word64 -> CBool -> Ptr CString -> IO (Ptr ExtismPlugin)
 
+foreign import ccall safe "extism.h extism_plugin_new_from_compiled"
+  extism_plugin_new_from_compiled ::
+    Ptr ExtismCompiledPlugin -> Ptr CString -> IO (Ptr ExtismPlugin)
+
+foreign import ccall safe "extism.h extism_compiled_plugin_new"
+  extism_compiled_plugin_new ::
+    Ptr Word8 -> Word64 -> Ptr (Ptr ExtismFunction) -> Word64 -> CBool -> Ptr CString -> IO (Ptr ExtismCompiledPlugin)
+
 foreign import ccall safe "extism.h extism_plugin_call"
   extism_plugin_call ::
     Ptr ExtismPlugin -> CString -> Ptr Word8 -> Word64 -> IO Int32
+
+foreign import ccall safe "extism.h extism_plugin_call_with_host_context"
+  extism_plugin_call_with_host_context ::
+    Ptr ExtismPlugin -> CString -> Ptr Word8 -> Word64 -> Ptr () -> IO Int32
 
 foreign import ccall safe "extism.h extism_plugin_function_exists"
   extism_plugin_function_exists ::
@@ -125,6 +139,10 @@ foreign import ccall safe "extism.h extism_plugin_config"
 foreign import ccall safe "extism.h extism_plugin_free"
   extism_plugin_free ::
     Ptr ExtismPlugin -> IO ()
+
+foreign import ccall safe "extism.h extism_compiled_plugin_free"
+  extism_compiled_plugin_free ::
+    Ptr ExtismCompiledPlugin -> IO ()
 
 foreign import ccall safe "extism.h extism_plugin_reset"
   extism_plugin_reset ::
@@ -165,6 +183,10 @@ foreign import ccall safe "extism.h extism_function_set_namespace"
 foreign import ccall safe "extism.h extism_current_plugin_memory"
   extism_current_plugin_memory ::
     Ptr ExtismCurrentPlugin -> IO (Ptr Word8)
+
+foreign import ccall safe "extism.h extism_current_plugin_host_context"
+  extism_current_plugin_host_context ::
+    Ptr ExtismCurrentPlugin -> IO (Ptr ())
 
 foreign import ccall safe "extism.h extism_current_plugin_memory_alloc"
   extism_current_plugin_memory_alloc ::

@@ -47,6 +47,18 @@ pluginCallHostFunction = do
   res <- call p "count_vowels" "this is a test" >>= assertUnwrap
   assertEqual "count vowels output" "{\"count\":999}" res
 
+helloContext currPlugin msg = do
+  ctx <- hostContext currPlugin
+  case ctx of
+    Nothing -> assertBool "Expected host context" False
+    Just s -> putStrLn s
+  output currPlugin 0 msg
+
+pluginCallHostContext = do
+  f <- newFunction "hello_world" [ptr] [ptr] "Hello, again" helloContext
+  p <- Extism.newPlugin hostFunctionManifest [f] True >>= assertUnwrap
+  callWithHostContext p "count_vowels" "this is a test" "host context" >>= assertUnwrap
+
 pluginMultiple = do
   p <- initPlugin
   checkCallResult p
@@ -77,6 +89,7 @@ main = do
         [ t "Plugin.FunctionExists" pluginFunctionExists,
           t "Plugin.Call" pluginCall,
           t "Plugin.CallHostFunction" pluginCallHostFunction,
+          t "Plugin.CallHostContext" pluginCallHostContext,
           t "Plugin.Multiple" pluginMultiple,
           t "Plugin.Config" pluginConfig,
           t "SetLogFile" testSetLogFile,
